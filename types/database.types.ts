@@ -224,8 +224,9 @@ export interface Database {
           bank_name: string | null;
           closing_day: number;
           created_at: string;
-          credit_limit_pen: number;
-          credit_limit_usd: number;
+          credit_limit_amount: number;
+          credit_limit_alert_percentage: number;
+          credit_limit_currency: CurrencyCode;
           current_debt_pen: number;
           current_debt_usd: number;
           default_tea: number;
@@ -250,8 +251,9 @@ export interface Database {
           bank_name?: string | null;
           closing_day: number;
           created_at?: string;
-          credit_limit_pen: number;
-          credit_limit_usd?: number;
+          credit_limit_amount: number;
+          credit_limit_alert_percentage?: number;
+          credit_limit_currency?: CurrencyCode;
           current_debt_pen?: number;
           current_debt_usd?: number;
           default_tea?: number;
@@ -276,8 +278,9 @@ export interface Database {
           bank_name?: string | null;
           closing_day?: number;
           created_at?: string;
-          credit_limit_pen?: number;
-          credit_limit_usd?: number;
+          credit_limit_amount?: number;
+          credit_limit_alert_percentage?: number;
+          credit_limit_currency?: CurrencyCode;
           current_debt_pen?: number;
           current_debt_usd?: number;
           default_tea?: number;

@@ -1,8 +1,8 @@
 # Estado del Proyecto - ERP de Finanzas Personales
 
 ## Estado Actual y Fase en Curso
-- **Fase en Curso:** Fase 4 implementada (*Motor de Actividad*). Pendiente aplicar la migración SQL en Supabase y validar manualmente el flujo; luego iniciar la Fase 5 (*Mi Mes*).
-- **Paso Actual:** Nueva Operación (6 tipos), historial filtrable, pestaña Por Cobrar y funciones SQL atómicas de saldos implementados.
+- **Fase en Curso:** Fase 5 implementada (*Mi Mes*). Pendiente la validación manual contra Supabase; luego iniciar la Fase 6 (*Inicio*).
+- **Paso Actual:** Presupuestos con consumo visible, plantillas editables y reversión de pagos integrada con el motor transaccional.
 
 ## Archivos Creados o Modificados
 - `components/navigation/nav-items.ts`: Constantes compartidas y tipadas para las 4 secciones principales (*Inicio*, *Actividad*, *Mis Cuentas*, *Mi Mes*) y sección secundaria (*Configuración*).
@@ -26,6 +26,10 @@
 - `components/accounts/edit-account-dialog.tsx`: Popup centrado para editar cuentas completas, incluyendo nombre, banco, tipo, moneda, saldo inicial y TREA.
 - `components/accounts/edit-card-dialog.tsx`: Popup centrado para editar tarjetas, líneas y deudas iniciales en PEN/USD, fechas y parámetros financieros.
 - `components/accounts/registration-dialog.tsx`: Popup reutilizable para formularios de alta con scroll interno y fondo difuminado.
+- `app/(app)/mi-mes/actions.ts`: Server Actions para guardar presupuestos, administrar plantillas de gastos fijos y registrar pagos del checklist como transacciones.
+- `components/month/month-panel.tsx`: Panel de Mi Mes con presupuestos, plantillas de gastos fijos, estados vacíos y popups de configuración/pago.
+- `app/(app)/mi-mes/page.tsx`: Lectura autenticada del periodo actual, presupuestos, plantillas, checklist, cuentas y tarjetas.
+- `lib/month/calculations.ts`: Cálculo del consumo presupuestario en PEN con gastos directos, cuotas activas, reembolsos y cobros compartidos.
 - `app/(app)/cuentas/page.tsx`: Consultas autenticadas y consolidación de datos de cuentas, tarjetas, préstamos e inversiones.
 - `SPEC.md`: Documentación del patrón de altas/ediciones mediante popups, estados vacíos, campos sin valores `0` por defecto y contraste de selectores.
 - `.junie/plans/phase-1-setup-auth-layout.md`: Actualización del estado del plan de entrega (Paso 4 marcado como completado).
@@ -43,8 +47,8 @@
 ## Siguiente Paso Técnico Inmediato
 - **Aplicar la migración** `supabase/migrations/20261029120000_activity_engine.sql` en el proyecto Supabase (por ejemplo con `npx supabase db push` o pegándola en el SQL Editor) y probar un gasto, una compra en cuotas, un gasto compartido con cobro parcial y un pago de tarjeta USD desde cuenta PEN.
 - **Fase 5 (Mi Mes):**
-  - Asignación de presupuestos mensuales por categoría aplicando la fórmula estricta (gastos directos + cuotas activas − reembolsos − cobros compartidos).
-  - Checklist de gastos fijos que genere transacciones reales usando `create_transaction`.
+  - Validar manualmente presupuestos, pagos y reversión contra Supabase.
+  - Revisar atomicidad del pago del checklist: actualmente crea la transacción y actualiza el checklist en dos llamadas; una RPC dedicada evitaría estados intermedios ante fallos de red.
 
 ## Errores Pendientes, Advertencias y Decisiones Técnicas
 - **TypeScript & Linting:** 0 errores en `npx tsc --noEmit`, 0 advertencias en `npm run lint`.
@@ -63,11 +67,16 @@
 - **Corrección runtime:** `/configuracion` declara explícitamente acceso request-time con `connection()` y se regeneraron los artefactos `.next` para evitar chunks SSR obsoletos.
 - **Corrección runtime adicional:** `UserMenuSection` en el layout autenticado declara acceso request-time con `connection()` antes de leer la sesión Supabase, evitando advertencias de `Date.now()` en `/dashboard`.
 - **Fase 3:** Los rendimientos reemplazados para el mismo periodo ajustan el valor por la diferencia, evitando duplicar ganancias al editar un registro.
-- **Tarjetas:** Se agregó línea de crédito USD independiente de PEN; los saldos iniciales editables ajustan el saldo vigente por la diferencia para conservar movimientos posteriores.
+- **Tarjetas:** La línea de crédito ahora se configura en una sola moneda (PEN o USD); la deuda continúa separada por moneda y los saldos iniciales editables ajustan el saldo vigente por la diferencia para conservar movimientos posteriores.
+- **Línea de crédito:** Cada tarjeta tiene una única línea en PEN o USD. Los consumos en la otra moneda se convierten con el tipo de cambio aplicado antes de validar y descontar la línea.
+- **Alertas de línea:** Cada tarjeta tiene un umbral configurable de utilización (`credit_limit_alert_percentage`), predeterminado en 70%; se muestra porcentaje, barra de progreso y alerta visual al alcanzarlo.
+- **SUNAT:** Configuración permite sincronizar el tipo de cambio de venta publicado por SUNAT (`tipoCambio.txt`) y guardarlo por fecha en `exchange_rates`.
 - **Formularios:** Los campos numéricos de alta ya no fuerzan `0`, permitiendo visualizar sus placeholders; los select usan contraste explícito para temas claro y oscuro.
 - **Edición:** Las cuentas y tarjetas se editan mediante popups minimalistas; cada popup permite actualizar todos los atributos configurables y conserva el ajuste diferencial del saldo/deuda vigente.
 - **UX de popups:** Los diálogos de edición están centrados en el viewport, limitan su altura con scroll interno y difuminan/oscurecen el fondo mediante `backdrop`.
 - **Registros:** Las altas de cuentas, tarjetas, préstamos, inversiones, rendimientos, categorías, tipos de cambio y onboarding se abren desde popups; las pantallas mantienen listados/estados vacíos sin formularios permanentes.
+- **Presupuestos:** El consumo se muestra por categoría con barra de progreso y alerta visual al superar el tope; se calcula en PEN usando el último tipo de cambio.
+- **Checklist:** Las plantillas pueden editarse desde popup y los pagos pueden revertirse mediante `delete_transaction`, restaurando el estado pendiente del periodo.
 - **Especificación funcional:** `SPEC.md` documenta el patrón obligatorio de popups, incluyendo centrado, backdrop blur, scroll interno, accesibilidad, estados vacíos, placeholders visibles y contraste de `select`.
 - **Compilación:** Build de producción exitoso con Next.js 16.4.3 Turbopack (`npm run build`) con generación de rutas parciales (Partial Prerendering / Cache Components) para todas las vistas principales.
 - **Decisiones Técnicas:**

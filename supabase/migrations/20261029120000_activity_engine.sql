@@ -22,6 +22,9 @@ BEGIN
     IF p_from = p_to THEN
         RETURN round(p_amount, 2);
     END IF;
+    IF p_amount = 0 THEN
+        RETURN 0;
+    END IF;
     IF p_rate IS NULL OR p_rate <= 0 THEN
         RAISE EXCEPTION 'Debes indicar el tipo de cambio aplicado a la operación.';
     END IF;
@@ -53,29 +56,40 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.adjust_card_debt(p_card_id UUID, p_currency currency_code, p_delta NUMERIC)
+CREATE OR REPLACE FUNCTION public.adjust_card_debt(p_card_id UUID, p_currency currency_code, p_delta NUMERIC, p_rate NUMERIC DEFAULT NULL)
     RETURNS VOID
     LANGUAGE plpgsql
 AS $$
 DECLARE
     v_debt NUMERIC;
+    v_debt_pen NUMERIC;
+    v_debt_usd NUMERIC;
     v_limit NUMERIC;
+    v_limit_currency currency_code;
+    v_limit_delta NUMERIC;
 BEGIN
     IF p_currency = 'PEN' THEN
         UPDATE public.credit_cards
         SET current_debt_pen = greatest(0, current_debt_pen + p_delta)
         WHERE id = p_card_id AND user_id = auth.uid()
-        RETURNING current_debt_pen, credit_limit_pen INTO v_debt, v_limit;
+        RETURNING current_debt_pen, credit_limit_currency, credit_limit_amount INTO v_debt, v_limit_currency, v_limit;
     ELSE
         UPDATE public.credit_cards
         SET current_debt_usd = greatest(0, current_debt_usd + p_delta)
         WHERE id = p_card_id AND user_id = auth.uid()
-        RETURNING current_debt_usd, credit_limit_usd INTO v_debt, v_limit;
+        RETURNING current_debt_usd, credit_limit_currency, credit_limit_amount INTO v_debt, v_limit_currency, v_limit;
     END IF;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'La tarjeta seleccionada no existe.';
     END IF;
+    SELECT current_debt_pen, current_debt_usd
+    INTO v_debt_pen, v_debt_usd
+    FROM public.credit_cards
+    WHERE id = p_card_id AND user_id = auth.uid();
+    v_limit_delta := public.convert_amount(p_delta, p_currency, v_limit_currency, p_rate);
+    v_debt := public.convert_amount(v_debt_pen, 'PEN', v_limit_currency, p_rate)
+        + public.convert_amount(v_debt_usd, 'USD', v_limit_currency, p_rate);
     IF p_delta > 0 AND v_limit > 0 AND v_debt > v_limit THEN
         RAISE EXCEPTION 'La operación excede la línea de crédito disponible en %.', p_currency;
     END IF;
@@ -199,7 +213,7 @@ BEGIN
         IF t.account_id IS NOT NULL THEN
             PERFORM public.adjust_account_balance(t.account_id, -p_direction * t.amount);
         ELSE
-            PERFORM public.adjust_card_debt(t.credit_card_id, t.currency, p_direction * t.amount);
+            PERFORM public.adjust_card_debt(t.credit_card_id, t.currency, p_direction * t.amount, t.applied_exchange_rate);
         END IF;
 
     ELSIF t.type = 'TRANSFER' THEN
@@ -219,7 +233,7 @@ BEGIN
 
     ELSIF t.type = 'CC_PAYMENT' THEN
         PERFORM public.adjust_account_balance(t.account_id, -p_direction * coalesce(t.converted_amount, t.amount));
-        PERFORM public.adjust_card_debt(t.credit_card_id, t.currency, -p_direction * t.amount);
+        PERFORM public.adjust_card_debt(t.credit_card_id, t.currency, -p_direction * t.amount, t.applied_exchange_rate);
         PERFORM public.apply_statement_payment(t.credit_card_id, t.currency, t.amount, p_direction);
 
     ELSIF t.type = 'LOAN_PAYMENT' THEN
@@ -645,7 +659,7 @@ $$;
 -- ----------------------------------------------------------------------------
 REVOKE ALL ON FUNCTION public.convert_amount(NUMERIC, currency_code, currency_code, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.adjust_account_balance(UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.adjust_card_debt(UUID, currency_code, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.adjust_card_debt(UUID, currency_code, NUMERIC, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.adjust_investment_value(UUID, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.adjust_loan(UUID, NUMERIC, INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.apply_statement_payment(UUID, currency_code, NUMERIC, INT) FROM PUBLIC;
@@ -656,7 +670,7 @@ REVOKE ALL ON FUNCTION public.delete_transaction(UUID) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION public.convert_amount(NUMERIC, currency_code, currency_code, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_account_balance(UUID, NUMERIC) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.adjust_card_debt(UUID, currency_code, NUMERIC) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adjust_card_debt(UUID, currency_code, NUMERIC, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_investment_value(UUID, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_loan(UUID, NUMERIC, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.apply_statement_payment(UUID, currency_code, NUMERIC, INT) TO authenticated;

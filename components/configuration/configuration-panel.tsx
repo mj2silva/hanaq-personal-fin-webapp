@@ -5,6 +5,7 @@ import {
   completeOnboarding,
   createCategory,
   saveExchangeRate,
+  syncSunatExchangeRate,
   toggleCategory,
   type ConfigurationActionState,
 } from '@/app/(app)/configuracion/actions';
@@ -47,6 +48,7 @@ export function ConfigurationPanel({
 }) {
   const [categoryState, categoryAction, categoryPending] = useActionState(createCategory, initialState);
   const [rateState, rateAction, ratePending] = useActionState(saveExchangeRate, initialState);
+  const [sunatState, sunatAction, sunatPending] = useActionState(syncSunatExchangeRate, initialState);
   const [onboardingState, onboardingAction, onboardingPending] = useActionState(
     completeOnboarding,
     initialState
@@ -74,8 +76,8 @@ export function ConfigurationPanel({
             </div>
             <label className="text-sm">Nombre<input name="cardName" className={inputClassName()} /></label>
             <label className="text-sm">Banco<input name="cardBankName" className={inputClassName()} /></label>
-            <label className="text-sm">Línea PEN<input name="cardLimitPen" type="number" step="0.01" min="0" className={inputClassName()} /></label>
-            <label className="text-sm">Línea USD<input name="cardLimitUsd" type="number" step="0.01" min="0" className={inputClassName()} /></label>
+            <label className="text-sm">Moneda de la línea<select name="cardLimitCurrency" className={selectClassName()}><option value="PEN">PEN</option><option value="USD">USD</option></select></label>
+            <label className="text-sm">Línea de crédito<input name="cardLimitAmount" type="number" step="0.01" min="0" className={inputClassName()} /></label>
             <label className="text-sm">Deuda PEN<input name="cardDebtPen" type="number" step="0.01" min="0" className={inputClassName()} /></label>
             <label className="text-sm">Deuda USD<input name="cardDebtUsd" type="number" step="0.01" min="0" className={inputClassName()} /></label>
             <label className="text-sm">Día de cierre<input name="cardClosingDay" type="number" min="1" max="31" className={inputClassName()} /></label>
@@ -96,11 +98,11 @@ export function ConfigurationPanel({
         <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="text-lg font-semibold">Tipo de cambio referencial</h2>
           <p className="mt-1 text-sm text-zinc-500">Último registro: {latestRate?.toFixed(4) ?? 'Sin registrar'}</p>
-          <div className="mt-4"><RegistrationDialog title="Registrar tipo de cambio" description="Añade el tipo de cambio USD/PEN de una fecha." trigger="Añadir tipo de cambio"><form action={rateAction} className="space-y-4">
+          <div className="mt-4 flex flex-wrap items-center gap-3"><RegistrationDialog title="Registrar tipo de cambio" description="Añade el tipo de cambio USD/PEN de una fecha." trigger="Añadir tipo de cambio"><form action={rateAction} className="space-y-4">
             <label className="block text-sm">Fecha<input name="rateDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className={inputClassName()} /></label>
             <label className="block text-sm">USD a PEN<input name="usdToPenRate" type="number" step="0.0001" min="0.0001" defaultValue={latestRate ?? ''} required className={inputClassName()} /></label>
             <div className="flex items-center justify-between gap-4"><ActionMessage state={rateState} /><button disabled={ratePending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900">{ratePending ? 'Guardando...' : 'Guardar tipo de cambio'}</button></div>
-          </form></RegistrationDialog></div>
+          </form></RegistrationDialog><form action={sunatAction} className="flex items-center gap-2"><button disabled={sunatPending} className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold dark:border-zinc-700">{sunatPending ? 'Sincronizando...' : 'Sincronizar SUNAT'}</button><ActionMessage state={sunatState} /></form></div>
         </section>
 
         <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">

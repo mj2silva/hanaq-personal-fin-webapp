@@ -51,6 +51,7 @@ const operationSchema = z.discriminatedUnion('type', [
     accountId: optionalUuid,
     creditCardId: optionalUuid,
     currency: currencySchema.optional(),
+    exchangeRate: optionalRate,
     categoryId: optionalUuid,
     installments: z.coerce.number().int().min(1).max(60).optional(),
     installmentMode: z.enum(['ZERO', 'DEFAULT', 'CUSTOM']).optional(),
@@ -165,10 +166,10 @@ export async function createOperation(
       destinationAccountId: text(formData, 'destinationAccountId'),
       creditCardId: text(formData, 'creditCardId'),
       categoryId: text(formData, 'categoryId'),
+      exchangeRate: text(formData, 'exchangeRate'),
       loanId: text(formData, 'loanId'),
       investmentId: text(formData, 'investmentId'),
       parentTransactionId: text(formData, 'parentTransactionId'),
-      exchangeRate: text(formData, 'exchangeRate'),
       installments: text(formData, 'installments'),
       installmentMode: text(formData, 'installmentMode'),
       customTea: text(formData, 'customTea'),
@@ -200,6 +201,7 @@ export async function createOperation(
           p_account_id: input.accountId ?? null,
           p_credit_card_id: input.creditCardId ?? null,
           p_category_id: input.categoryId ?? null,
+          p_applied_exchange_rate: input.exchangeRate ?? null,
           p_splits: input.splits.map((split) => ({ debtor_name: split.debtor_name, amount_owed: split.amount_owed })),
         };
         if (installments > 1 && input.creditCardId) {

@@ -20,6 +20,11 @@ const exchangeRateSchema = z.object({
   usdToPenRate: z.coerce.number().positive('El tipo de cambio debe ser mayor a cero.').finite(),
 });
 
+const sunatRateSchema = z.object({
+  rateDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  usdToPenRate: z.number().positive().finite(),
+});
+
 const onboardingSchema = z.object({
   exchangeRate: z.coerce.number().positive('El tipo de cambio debe ser mayor a cero.').finite(),
   accountName: z.string().trim().min(1, 'Indica el nombre de la cuenta.').max(100),
@@ -29,8 +34,8 @@ const onboardingSchema = z.object({
   accountBalance: z.coerce.number().min(0, 'El saldo inicial no puede ser negativo.').finite(),
   cardName: z.string().trim().max(100).optional(),
   cardBankName: z.string().trim().max(100).optional(),
-  cardLimitPen: z.coerce.number().min(0).finite().optional(),
-  cardLimitUsd: z.coerce.number().min(0).finite().optional(),
+  cardLimitCurrency: z.enum(['PEN', 'USD']).optional(),
+  cardLimitAmount: z.coerce.number().min(0).finite().optional(),
   cardDebtPen: z.coerce.number().min(0).finite().optional(),
   cardDebtUsd: z.coerce.number().min(0).finite().optional(),
   cardClosingDay: z.coerce.number().int().min(1).max(31).optional(),
@@ -153,6 +158,39 @@ export async function saveExchangeRate(
   } catch (error) {
     return actionError(error);
   }
+
+}
+
+export async function syncSunatExchangeRate(
+  _previousState: ConfigurationActionState | null,
+  _formData: FormData
+): Promise<ConfigurationActionState> {
+  try {
+    void _previousState;
+    void _formData;
+    const response = await fetch('https://www.sunat.gob.pe/a/txt/tipoCambio.txt', { cache: 'no-store' });
+    if (!response.ok) throw new Error('SUNAT no está disponible en este momento.');
+    const raw = await response.text();
+    const [sunatDate, , sellRate] = raw.trim().split('|');
+    const [day, month, year] = (sunatDate ?? '').split('/');
+    const input = sunatRateSchema.parse({
+      rateDate: `${year}-${month}-${day}`,
+      usdToPenRate: Number(sellRate),
+    });
+    const { supabase, user } = await getAuthenticatedUser();
+    const { error } = await supabase.from('exchange_rates').upsert({
+      user_id: user.id,
+      rate_date: input.rateDate,
+      usd_to_pen_rate: input.usdToPenRate,
+    }, { onConflict: 'user_id,rate_date' });
+    if (error) throw new Error('No se pudo guardar el tipo de cambio de SUNAT.');
+    revalidatePath('/configuracion');
+    revalidatePath('/cuentas');
+    revalidatePath('/actividad');
+    return { success: `Tipo de cambio SUNAT sincronizado: ${input.usdToPenRate.toFixed(4)}.` };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 export async function completeOnboarding(
@@ -169,8 +207,8 @@ export async function completeOnboarding(
       accountBalance: formData.get('accountBalance'),
       cardName: formData.get('cardName') || undefined,
       cardBankName: formData.get('cardBankName') || undefined,
-      cardLimitPen: formData.get('cardLimitPen') || undefined,
-      cardLimitUsd: formData.get('cardLimitUsd') || undefined,
+      cardLimitCurrency: formData.get('cardLimitCurrency') || undefined,
+      cardLimitAmount: formData.get('cardLimitAmount') || undefined,
       cardDebtPen: formData.get('cardDebtPen') || undefined,
       cardDebtUsd: formData.get('cardDebtUsd') || undefined,
       cardClosingDay: formData.get('cardClosingDay') || undefined,
@@ -212,8 +250,8 @@ export async function completeOnboarding(
         user_id: user.id,
         name: input.cardName,
         bank_name: input.cardBankName || null,
-        credit_limit_pen: input.cardLimitPen ?? 0,
-        credit_limit_usd: input.cardLimitUsd ?? 0,
+        credit_limit_currency: input.cardLimitCurrency ?? 'PEN',
+        credit_limit_amount: input.cardLimitAmount ?? 0,
         initial_debt_pen: input.cardDebtPen ?? 0,
         initial_debt_usd: input.cardDebtUsd ?? 0,
         current_debt_pen: input.cardDebtPen ?? 0,
