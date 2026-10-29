@@ -1,8 +1,8 @@
 # Estado del Proyecto - ERP de Finanzas Personales
 
 ## Estado Actual y Fase en Curso
-- **Fase en Curso:** Fase 1 completada con éxito (*Setup Base, Auth, Tipos y Layout de Navegación*). Lista para iniciar la Fase 2 (*Configuración y Onboarding Día 0*).
-- **Paso Actual:** Paso 4 completado (*Main Application Layout & Navigation Shells*). Todos los 4 pasos de la Fase 1 han sido finalizados y verificados.
+- **Fase en Curso:** Fase 2 completada (*Configuración y Onboarding Día 0*). Lista para iniciar la Fase 3 (*Módulo Mis Cuentas*).
+- **Paso Actual:** CRUD de categorías, registro de tipo de cambio y onboarding inicial implementados y verificados.
 
 ## Archivos Creados o Modificados
 - `components/navigation/nav-items.ts`: Constantes compartidas y tipadas para las 4 secciones principales (*Inicio*, *Actividad*, *Mis Cuentas*, *Mi Mes*) y sección secundaria (*Configuración*).
@@ -18,18 +18,27 @@
 - `app/page.tsx`: Redirección automática desde la raíz (`/`) hacia `/dashboard`.
 - `app/layout.tsx`: Actualización de metadata en español (`"ERP Finanzas Personales"`) y lenguaje del documento (`lang="es"`).
 - `test/navigation.test.mjs`: Pruebas unitarias para validar la integridad de rutas y configuración de elementos de navegación.
+- `app/(app)/configuracion/actions.ts`: Server Actions validadas con `zod` para categorías, tipo de cambio y onboarding.
+- `components/configuration/configuration-panel.tsx`: Formularios responsivos para categorías, tipo de cambio, cuentas iniciales y tarjeta opcional.
+- `app/(app)/configuracion/page.tsx`: Lectura autenticada de categorías, tipo de cambio y estado de onboarding.
+- `package.json`, `package-lock.json`: Incorporación de `zod` para validación de entradas.
 - `.junie/plans/phase-1-setup-auth-layout.md`: Actualización del estado del plan de entrega (Paso 4 marcado como completado).
 
 ## Siguiente Paso Técnico Inmediato
-- **Fase 2 (Configuración y Onboarding - Día 0):**
-  - Implementar CRUD de Categorías de Gastos e Ingresos (`categories`) con Server Actions y validación con `zod`.
-  - Implementar gestión del Tipo de Cambio Referencial (`exchange_rates`, USD a PEN).
-  - Desarrollar el asistente de Onboarding (Día 0) para inicializar `user_settings`, cuentas bancarias iniciales (`accounts`), caja de efectivo y tarjetas de crédito iniciales (`credit_cards`).
+- **Fase 3 (Módulo Mis Cuentas):**
+  - Construir el resumen de cuentas bancarias y caja de efectivo con saldos por moneda.
+  - Añadir detalle de tarjetas de crédito, deuda bimonetaria, fechas de ciclo y desgravamen.
+  - Implementar seguimiento de préstamos e inversiones.
 
 ## Errores Pendientes, Advertencias y Decisiones Técnicas
 - **TypeScript & Linting:** 0 errores en `npx tsc --noEmit`, 0 advertencias en `npm run lint`.
 - **Pruebas:** 14/14 pruebas unitarias pasando en `npm test`.
+- **Build:** Producción verificada correctamente con Next.js 16.4.3 y Turbopack.
+- **Corrección runtime:** `/configuracion` declara explícitamente acceso request-time con `connection()` y se regeneraron los artefactos `.next` para evitar chunks SSR obsoletos.
+- **Corrección runtime adicional:** `UserMenuSection` en el layout autenticado declara acceso request-time con `connection()` antes de leer la sesión Supabase, evitando advertencias de `Date.now()` en `/dashboard`.
 - **Compilación:** Build de producción exitoso con Next.js 16.4.3 Turbopack (`npm run build`) con generación de rutas parciales (Partial Prerendering / Cache Components) para todas las vistas principales.
 - **Decisiones Técnicas:**
   - Se aisló la lectura de sesión de usuario en un subcomponente suspendido dentro de `app/(app)/layout.tsx` para permitir que Next.js 16 genere y cachee instantáneamente el App Shell estático sin bloquearse por acceso directo a `cookies()`.
   - La protección de rutas continúa rigurosamente delegada a `proxy.ts` / Next.js Middleware para interceptar solicitudes no autenticadas en el edge antes de llegar a las vistas.
+  - Las categorías se desactivan en lugar de eliminarse para preservar referencias históricas y evitar romper presupuestos o transacciones.
+  - El onboarding es idempotente respecto a `user_settings.onboarding_completed` y crea una cuenta inicial, una tarjeta opcional y el tipo de cambio del día.

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { MainNav } from '@/components/navigation/main-nav';
 import { MobileNav } from '@/components/navigation/mobile-nav';
@@ -7,16 +8,20 @@ import { UserMenu } from '@/components/navigation/user-menu';
 import { Wallet } from 'lucide-react';
 
 async function UserMenuSection() {
+  await connection();
+
+  let userEmail: string | null = null;
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
-    return <UserMenu userEmail={user?.email ?? null} />;
+    userEmail = user?.email ?? null;
   } catch {
-    return <UserMenu userEmail={null} />;
+    userEmail = null;
   }
+
+  return <UserMenu userEmail={userEmail} />;
 }
 
 export default function AppLayout({
