@@ -940,7 +940,46 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      create_transaction: {
+        Args: {
+          p_type: TransactionType;
+          p_transaction_date: string;
+          p_description: string;
+          p_amount: number;
+          p_currency: CurrencyCode;
+          p_category_id?: string | null;
+          p_account_id?: string | null;
+          p_destination_account_id?: string | null;
+          p_credit_card_id?: string | null;
+          p_applied_exchange_rate?: number | null;
+          p_loan_id?: string | null;
+          p_investment_id?: string | null;
+          p_parent_transaction_id?: string | null;
+          p_installments?: number;
+          p_installment_tea?: number;
+          p_installment_start_period?: string | null;
+          p_installment_principal?: number | null;
+          p_installment_interest?: number | null;
+          p_splits?: Json;
+        };
+        Returns: string;
+      };
+      register_shared_repayment: {
+        Args: {
+          p_split_id: string;
+          p_account_id: string;
+          p_amount: number;
+          p_transaction_date?: string | null;
+          p_description?: string | null;
+        };
+        Returns: string;
+      };
+      delete_transaction: {
+        Args: {
+          p_transaction_id: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       account_type: AccountType;
