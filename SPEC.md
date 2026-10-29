@@ -17,6 +17,15 @@ Actúa como un Arquitecto de Software Senior y Desarrollador Full-Stack experto 
 ### 2. MAPA DE NAVEGACIÓN Y VISTAS (UI MINIMALISTA)
 La aplicación debe contar con una barra de navegación principal limpia con solo **4 secciones principales** y un acceso secundario a configuración:
 
+#### 2.1. Patrón de registro y edición mediante popups
+*   **Formularios de alta:** Los formularios de registro no deben mostrarse permanentemente dentro de las páginas. Cada módulo debe mostrar inicialmente sus registros existentes o un estado vacío descriptivo, acompañado de un botón de acción para abrir el formulario correspondiente en un popup.
+*   **Ámbitos del patrón:** Este comportamiento aplica a cuentas, tarjetas de crédito, préstamos, inversiones, rendimientos mensuales, categorías, tipos de cambio y al onboarding inicial.
+*   **Edición:** La edición de una cuenta, tarjeta u otra entidad debe abrirse desde un popup y permitir modificar todos los atributos editables de la entidad en un único formulario, incluyendo nombre, banco, moneda, límites, fechas, saldos iniciales y parámetros financieros cuando correspondan.
+*   **Diseño de los popups:** Los popups deben utilizar una presentación minimalista, estar centrados en el viewport, tener una altura máxima con desplazamiento interno para formularios extensos y aplicar un fondo oscurecido con difuminado (`backdrop blur`) para mantener el contexto sin distraer.
+*   **Accesibilidad y estados:** Los diálogos deben poder cerrarse de forma explícita, conservar los mensajes de validación y éxito/error de las acciones del servidor, y mantener una experiencia responsive en pantallas pequeñas.
+*   **Campos vacíos:** Los campos numéricos y opcionales deben iniciar vacíos cuando no exista un valor introducido por el usuario; no se deben inicializar automáticamente con `0` si esto oculta el placeholder o impide distinguir un campo pendiente de completar.
+*   **Selectores:** Los elementos `select` deben definir explícitamente fondo y color de texto para los temas claro y oscuro, de forma que las opciones mantengan contraste legible tanto en el control como en su lista desplegable.
+
 1.  **Inicio (`/dashboard`):**
     *   **Resumen del Mes:** Ingresos vs. Gastos reales, Balance neto del periodo y Patrimonio total consolidado en Soles (PEN).
     *   **Toggle de Liquidez:** Interruptor rápido para incluir o excluir el saldo de la "Caja de Efectivo" (`include_cash_in_balance`) en los cálculos de liquidez y proyecciones.
@@ -29,18 +38,18 @@ La aplicación debe contar con una barra de navegación principal limpia con sol
     *   **Tab 2 - Por Cobrar (Gastos Compartidos):** Panel dedicado al seguimiento de deudas de amigos/terceros originadas en gastos compartidos. Permite registrar pagos parciales o totales (ej. Yape/Plin recibidos) seleccionando a qué cuenta bancaria o caja entra el dinero.
 
 3.  **Mis Cuentas (`/cuentas`):**
-    *   **Bancos y Efectivo:** Tarjetas visuales con saldos actuales en PEN y USD, indicando la TREA si es cuenta remunerada, y la "Caja de Efectivo".
-    *   **Tarjetas de Crédito:** Control detallado de línea de crédito disponible vs. utilizada, deuda actual bimonetaria (PEN y USD separados), fechas de corte y pago del ciclo actual, control del Seguro de Desgravamen (cálculo automático con opción de edición manual / override en el estado de cuenta) y progreso para exoneración de membresía anual.
-    *   **Préstamos e Inversiones:** Seguimiento de préstamos activos (cuotas restantes y saldo) y portafolio de inversiones con botón para registrar el rendimiento mensual (ganancia o pérdida del mes en `investment_monthly_logs`).
+    *   **Bancos y Efectivo:** Tarjetas visuales con saldos actuales en PEN y USD, indicando la TREA si es cuenta remunerada, y la "Caja de Efectivo". La creación y edición se realiza mediante popup; la edición permite actualizar el nombre, banco, tipo, moneda, saldo inicial y TREA.
+    *   **Tarjetas de Crédito:** Control detallado de línea de crédito disponible vs. utilizada, deuda actual bimonetaria (PEN y USD separados), fechas de corte y pago del ciclo actual, control del Seguro de Desgravamen (cálculo automático con opción de edición manual / override en el estado de cuenta) y progreso para exoneración de membresía anual. Tanto la línea como la deuda inicial pueden existir por separado en PEN y USD, aunque los gastos se registren en cualquiera de las dos monedas.
+    *   **Préstamos e Inversiones:** Seguimiento de préstamos activos (cuotas restantes y saldo) y portafolio de inversiones con botón para registrar el rendimiento mensual (ganancia o pérdida del mes en `investment_monthly_logs`). Las altas y el registro de rendimientos se abren mediante popup.
 
 4.  **Mi Mes (`/mi-mes`):**
     *   **Checklist de Gastos Fijos:** Lista interactiva de recibos y suscripciones recurrentes del mes (`monthly_fixed_checklist`). Al marcar un ítem como "Pagado", solicita confirmar el *monto real* (ya que servicios como luz o agua varían respecto al estimado) y la cuenta/tarjeta de origen, generando automáticamente la transacción correspondiente.
     *   **Configuración de Presupuestos:** Asignación y edición de topes mensuales en PEN por categoría de gasto.
 
 5.  **Configuración (`/configuracion` - Acceso desde ícono de perfil/engranaje):**
-    *   **Flujo de Onboarding (Día 0):** Si `onboarding_completed = false`, redirigir a un asistente inicial para registrar el Tipo de Cambio base, cuentas bancarias con sus saldos iniciales del Día 0, caja de efectivo y tarjetas de crédito con sus deudas iniciales.
-    *   **Catálogos:** CRUD de Orígenes de Ingreso y Categorías de Gasto (`categories`).
-    *   **Tipo de Cambio Referencial:** Registro del tipo de cambio del día (`exchange_rates`, USD a PEN) usado para consolidar el dashboard y las proyecciones.
+    *   **Flujo de Onboarding (Día 0):** Si `onboarding_completed = false`, redirigir a un asistente inicial que se abre en popup para registrar el Tipo de Cambio base, cuentas bancarias con sus saldos iniciales del Día 0, caja de efectivo y tarjetas de crédito con sus deudas iniciales.
+    *   **Catálogos:** CRUD de Orígenes de Ingreso y Categorías de Gasto (`categories`) mediante popups, manteniendo el listado o un estado vacío visible en la página.
+    *   **Tipo de Cambio Referencial:** Registro del tipo de cambio del día (`exchange_rates`, USD a PEN) mediante popup, usado para consolidar el dashboard y las proyecciones.
 
 ---
 
@@ -93,7 +102,7 @@ La base de datos en Supabase ya tiene ejecutado el siguiente esquema exacto. Ús
     2.  `exchange_rates`: `id` (PK), `user_id`, `rate_date`, `usd_to_pen_rate`.
     3.  `categories`: `id` (PK), `user_id`, `name`, `type`, `is_active`.
     4.  `accounts`: `id` (PK), `user_id`, `name`, `type`, `bank_name`, `currency`, `initial_balance`, `current_balance`, `trea_percentage`, `is_active`.
-    5.  `credit_cards`: `id` (PK), `user_id`, `name`, `bank_name`, `is_bimonetary`, `credit_limit_pen`, `initial_debt_pen`, `initial_debt_usd`, `current_debt_pen`, `current_debt_usd`, `default_tea`, `closing_day`, `payment_due_day`, `desgravamen_rate`, `desgravamen_max_pen`, `has_annual_fee`, `annual_fee_amount`, `annual_fee_currency`, `annual_fee_month`, `exemption_rule`, `exemption_min_amount`, `is_active`.
+    5.  `credit_cards`: `id` (PK), `user_id`, `name`, `bank_name`, `is_bimonetary`, `credit_limit_pen`, `credit_limit_usd`, `initial_debt_pen`, `initial_debt_usd`, `current_debt_pen`, `current_debt_usd`, `default_tea`, `closing_day`, `payment_due_day`, `desgravamen_rate`, `desgravamen_max_pen`, `has_annual_fee`, `annual_fee_amount`, `annual_fee_currency`, `annual_fee_month`, `exemption_rule`, `exemption_min_amount`, `is_active`.
     6.  `credit_card_statements`: `id` (PK), `user_id`, `credit_card_id`, `period_year_month` ('YYYY-MM'), `closing_date`, `due_date`, `statement_balance_pen`, `statement_balance_usd`, `paid_amount_pen`, `paid_amount_usd`, `calculated_desgravamen_pen`, `manual_desgravamen_override_pen`, `is_paid`.
     7.  `loans`: `id` (PK), `user_id`, `lender_name`, `currency`, `initial_amount`, `current_balance`, `tea_percentage`, `monthly_installment_amount`, `total_installments`, `remaining_installments`, `payment_due_day`, `is_active`.
     8.  `investments`: `id` (PK), `user_id`, `name`, `currency`, `initial_capital`, `current_value`, `is_active`.

@@ -225,6 +225,7 @@ export interface Database {
           closing_day: number;
           created_at: string;
           credit_limit_pen: number;
+          credit_limit_usd: number;
           current_debt_pen: number;
           current_debt_usd: number;
           default_tea: number;
@@ -250,6 +251,7 @@ export interface Database {
           closing_day: number;
           created_at?: string;
           credit_limit_pen: number;
+          credit_limit_usd?: number;
           current_debt_pen?: number;
           current_debt_usd?: number;
           default_tea?: number;
@@ -275,6 +277,7 @@ export interface Database {
           closing_day?: number;
           created_at?: string;
           credit_limit_pen?: number;
+          credit_limit_usd?: number;
           current_debt_pen?: number;
           current_debt_usd?: number;
           default_tea?: number;

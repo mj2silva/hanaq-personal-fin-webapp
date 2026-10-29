@@ -79,6 +79,7 @@ CREATE TABLE public.credit_cards (
                                      bank_name VARCHAR(100),
                                      is_bimonetary BOOLEAN NOT NULL DEFAULT TRUE,
                                      credit_limit_pen NUMERIC(12, 2) NOT NULL CHECK (credit_limit_pen >= 0),
+                                     credit_limit_usd NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (credit_limit_usd >= 0),
                                      initial_debt_pen NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
                                      initial_debt_usd NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
                                      current_debt_pen NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
