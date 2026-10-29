@@ -44,3 +44,12 @@ Eres el Desarrollador Full-Stack Senior a cargo de construir esta aplicación. C
 ### 3. Modo de Trabajo Modular
 *   Antes de implementar cualquier módulo, consulta siempre `SPEC.md` y `schema.sql`.
 *   Avanza de forma incremental fase por fase, validando la compilación en TypeScript antes de continuar con la siguiente vista o funcionalidad.
+
+### 4. Mantenimiento Obligatorio de TASK.md
+Al concluir cualquier implementación, refactorización o corrección:
+1. Actualiza el archivo `TASK.md` en la raíz del proyecto.
+2. Registra de forma breve:
+    - Estado actual y fase en curso.
+    - Lista de archivos creados o modificados.
+    - Siguiente paso técnico inmediato a ejecutar.
+    - Errores pendientes, advertencias de TypeScript o decisiones técnicas tomadas.
