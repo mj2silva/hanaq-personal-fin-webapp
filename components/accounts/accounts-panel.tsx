@@ -33,6 +33,18 @@ export function AccountsPanel({ accounts, cards, loans, investments, exchangeRat
   const [investmentState, investmentAction, investmentPending] = useActionState(createInvestment, initialState);
   const [logState, logAction, logPending] = useActionState(recordInvestmentLog, initialState);
   const money = (value: number, currency: string) => new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value);
+  const creditTotals = cards.reduce((totals, card) => {
+    const limitPen = card.credit_limit_currency === 'PEN'
+      ? card.credit_limit_amount
+      : convertAmount(card.credit_limit_amount, 'USD', 'PEN', exchangeRate);
+    const debtPen = card.current_debt_pen + convertAmount(card.current_debt_usd, 'USD', 'PEN', exchangeRate);
+    return {
+      limitPen: totals.limitPen + limitPen,
+      debtPen: totals.debtPen + debtPen,
+    };
+  }, { limitPen: 0, debtPen: 0 });
+  const creditAvailablePen = creditTotals.limitPen - creditTotals.debtPen;
+  const creditUsage = creditTotals.limitPen > 0 ? (creditTotals.debtPen / creditTotals.limitPen) * 100 : 0;
 
   return <div className="space-y-6">
     <div className="grid gap-6 lg:grid-cols-2">
@@ -56,6 +68,21 @@ export function AccountsPanel({ accounts, cards, loans, investments, exchangeRat
         </div>
       </Section>
       <Section title="Tarjetas de crédito">
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="flex min-h-[116px] flex-col rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/60">
+            <p className="min-h-8 text-xs leading-4 text-zinc-500">Línea total equivalente</p>
+            <p className="mt-auto text-xl font-semibold tabular-nums">{money(creditTotals.limitPen, 'PEN')}</p>
+          </div>
+          <div className="flex min-h-[116px] flex-col rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/60">
+            <p className="min-h-8 text-xs leading-4 text-zinc-500">Deuda total equivalente</p>
+            <p className="mt-auto text-xl font-semibold tabular-nums">{money(creditTotals.debtPen, 'PEN')}</p>
+          </div>
+          <div className={`flex min-h-[116px] flex-col rounded-xl p-4 ${creditAvailablePen >= 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-red-50 dark:bg-red-950/30'}`}>
+            <p className="min-h-8 text-xs leading-4 text-zinc-500">Disponible · {creditUsage.toFixed(1)}% usado</p>
+            <p className={`mt-auto text-xl font-semibold tabular-nums ${creditAvailablePen >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{money(creditAvailablePen, 'PEN')}</p>
+          </div>
+        </div>
+        {cards.length > 0 && <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"><div className={`h-full rounded-full ${creditUsage >= 100 ? 'bg-red-500' : creditUsage >= 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, creditUsage)}%` }} /></div>}
         <div className="mt-4 space-y-3">
           {cards.length === 0 && <p className="text-sm text-zinc-500">No hay tarjetas registradas.</p>}
           {cards.map((card) => { const debtInLimitCurrency = card.credit_limit_currency === 'PEN' ? card.current_debt_pen + convertAmount(card.current_debt_usd, 'USD', 'PEN', exchangeRate) : card.current_debt_usd + convertAmount(card.current_debt_pen, 'PEN', 'USD', exchangeRate); const usage = card.credit_limit_amount > 0 ? (debtInLimitCurrency / card.credit_limit_amount) * 100 : 0; const alertThreshold = card.credit_limit_alert_percentage; const alert = usage >= alertThreshold; const desgravamen = Math.min(card.current_debt_pen * card.desgravamen_rate, card.desgravamen_max_pen); const spend = card.exemption_rule === 'MIN_ANNUAL_SPEND' ? card.annualSpend : card.monthlySpend; const progress = card.exemption_rule === 'NONE' || !card.exemption_min_amount ? 0 : Math.min(100, (spend / card.exemption_min_amount) * 100); return <div key={card.id} className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/60"><div className="flex justify-between"><div><p className="font-medium">{card.name}</p><p className="text-xs text-zinc-500">{card.bank_name ?? 'Tarjeta'} · Corte día {card.closing_day} · Pago día {card.payment_due_day}</p></div><div className="flex items-center gap-4"><p className="font-semibold">{money(card.current_debt_pen, 'PEN')}</p><EditCardDialog card={card} /></div></div><div className="mt-2 flex items-center justify-between text-xs text-zinc-500"><span>Línea: {card.credit_limit_currency} {card.credit_limit_amount.toFixed(2)}</span><span className={alert ? 'font-semibold text-red-600' : ''}>{usage.toFixed(1)}% utilizado</span></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"><div className={`h-full rounded-full ${alert ? 'bg-red-500' : usage >= alertThreshold * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, usage)}%` }} /></div><p className={`mt-1 text-xs ${alert ? 'font-semibold text-red-600' : 'text-zinc-500'}`}>{alert ? `Alerta: supera el ${alertThreshold}% configurado` : `Alerta configurada al ${alertThreshold}%`}</p><div className="mt-2 text-xs text-zinc-500">Deuda: PEN {card.current_debt_pen.toFixed(2)} / USD {card.current_debt_usd.toFixed(2)} · Desgravamen {money(desgravamen, 'PEN')}</div>{card.exemption_rule !== 'NONE' && <><div className="mt-3 flex justify-between text-xs text-zinc-500"><span>Exoneración {card.exemption_rule === 'MIN_ANNUAL_SPEND' ? 'anual' : 'mensual'}</span><span>{spend.toFixed(2)} / {card.exemption_min_amount?.toFixed(2)}</span></div><div className="mt-1 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700"><div className="h-1.5 rounded-full bg-emerald-500" style={{ width: `${progress}%` }} /></div></>}</div> })}

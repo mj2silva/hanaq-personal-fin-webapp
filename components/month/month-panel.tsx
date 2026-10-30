@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { CheckCircle2, PieChart } from 'lucide-react';
 import { RegistrationDialog } from '@/components/accounts/registration-dialog';
 import { selectClass, fieldClass, primaryButtonClass } from '@/components/activity/styles';
@@ -45,6 +45,98 @@ function ActionForm({
   return <form action={formAction} className="space-y-4">{children}<div className="flex items-center justify-between gap-3"><Message state={state} /><button className={primaryButtonClass} disabled={pending}>{pending ? 'Guardando...' : submitLabel}</button></div></form>;
 }
 
+function BudgetDialog({
+  period,
+  category,
+  budget,
+}: {
+  period: string;
+  category: Category;
+  budget?: BudgetWithUsage;
+}) {
+  return (
+    <RegistrationDialog
+      title={budget ? `Editar presupuesto de ${category.name}` : 'Configurar presupuesto'}
+      description="Define el tope mensual de una categoría en soles."
+      trigger={budget ? 'Editar' : 'Configurar presupuesto'}
+    >
+      <ActionForm action={saveBudget}>
+        <input type="hidden" name="period" value={period} />
+        <input type="hidden" name="categoryId" value={category.id} />
+        <label className="block text-sm">
+          Categoría
+          <input value={category.name} readOnly className={fieldClass} />
+        </label>
+        <label className="block text-sm">
+          Tope mensual PEN
+          <input
+            name="limitAmountPen"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            defaultValue={budget?.limit_amount_pen}
+            placeholder="0.00"
+            className={fieldClass}
+          />
+        </label>
+      </ActionForm>
+    </RegistrationDialog>
+  );
+}
+
+function BudgetConfigurationDialog({
+  period,
+  categories,
+  budgets,
+}: {
+  period: string;
+  categories: Category[];
+  budgets: BudgetWithUsage[];
+}) {
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const budgetByCategory = new Map(budgets.map((budget) => [budget.category_id, budget]));
+  const selectedBudget = budgetByCategory.get(categoryId);
+
+  return (
+    <RegistrationDialog
+      title="Configurar presupuesto"
+      description="Define o actualiza el tope mensual de una categoría en soles."
+      trigger="Configurar presupuesto"
+    >
+      <ActionForm action={saveBudget}>
+        <input type="hidden" name="period" value={period} />
+        <label className="block text-sm">
+          Categoría
+          <select
+            name="categoryId"
+            required
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+            className={selectClass}
+          >
+            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm">
+          Tope mensual PEN
+          <input
+            key={categoryId}
+            name="limitAmountPen"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            defaultValue={selectedBudget?.limit_amount_pen}
+            placeholder="0.00"
+            className={fieldClass}
+          />
+        </label>
+      </ActionForm>
+    </RegistrationDialog>
+  );
+}
+
 export function MonthPanel({
   period,
   categories,
@@ -71,13 +163,7 @@ export function MonthPanel({
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-50">Mi Mes</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Presupuestos y gastos fijos de {period}.</p>
         </div>
-        <RegistrationDialog title="Configurar presupuesto" description="Define el tope mensual de una categoría en soles." trigger="Configurar presupuesto">
-          <ActionForm action={saveBudget}>
-            <input type="hidden" name="period" value={period} />
-            <label className="block text-sm">Categoría<select name="categoryId" required className={selectClass}>{expenseCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-            <label className="block text-sm">Tope mensual PEN<input name="limitAmountPen" type="number" min="0" step="0.01" required placeholder="0.00" className={fieldClass} /></label>
-          </ActionForm>
-        </RegistrationDialog>
+        <BudgetConfigurationDialog period={period} categories={expenseCategories} budgets={budgets} />
       </div>
 
       <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
@@ -88,7 +174,7 @@ export function MonthPanel({
               const budget = budgetByCategory.get(category.id);
               const usage = budget?.usage ?? 0;
               const percentage = budget && budget.limit_amount_pen > 0 ? Math.round((usage / budget.limit_amount_pen) * 100) : 0;
-              return <li key={category.id} className="space-y-2 py-3 text-sm"><div className="flex items-center justify-between gap-4"><span>{category.name}</span><span className="text-zinc-500">{budget ? `S/ ${usage.toFixed(2)} de S/ ${budget.limit_amount_pen.toFixed(2)}` : 'Sin tope'}</span></div>{budget && <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"><div className={`h-full rounded-full ${percentage > 100 ? 'bg-red-500' : percentage >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, percentage)}%` }} /></div>}</li>;
+              return <li key={category.id} className="space-y-2 py-3 text-sm"><div className="flex items-center justify-between gap-4"><span>{category.name}</span><span className="flex items-center gap-3 text-zinc-500">{budget ? `S/ ${usage.toFixed(2)} de S/ ${budget.limit_amount_pen.toFixed(2)}` : 'Sin tope'}{budget && <BudgetDialog period={period} category={category} budget={budget} />}</span></div>{budget && <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"><div className={`h-full rounded-full ${percentage > 100 ? 'bg-red-500' : percentage >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, percentage)}%` }} /></div>}</li>;
             })}
           </ul>
         )}

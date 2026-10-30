@@ -1,8 +1,8 @@
 # Estado del Proyecto - ERP de Finanzas Personales
 
 ## Estado Actual y Fase en Curso
-- **Fase en Curso:** Fase 5 implementada (*Mi Mes*). Pendiente la validación manual contra Supabase; luego iniciar la Fase 6 (*Inicio*).
-- **Paso Actual:** Presupuestos con consumo visible, plantillas editables y reversión de pagos integrada con el motor transaccional.
+- **Fase en Curso:** Fase 6 implementada (*Inicio*). Pendiente la validación manual de escenarios de proyección contra Supabase.
+- **Paso Actual:** Dashboard con patrimonio, liquidez configurable, consumo presupuestario y proyección financiera a seis meses.
 
 ## Archivos Creados o Modificados
 - `components/navigation/nav-items.ts`: Constantes compartidas y tipadas para las 4 secciones principales (*Inicio*, *Actividad*, *Mis Cuentas*, *Mi Mes*) y sección secundaria (*Configuración*).
@@ -30,6 +30,9 @@
 - `components/month/month-panel.tsx`: Panel de Mi Mes con presupuestos, plantillas de gastos fijos, estados vacíos y popups de configuración/pago.
 - `app/(app)/mi-mes/page.tsx`: Lectura autenticada del periodo actual, presupuestos, plantillas, checklist, cuentas y tarjetas.
 - `lib/month/calculations.ts`: Cálculo del consumo presupuestario en PEN con gastos directos, cuotas activas, reembolsos y cobros compartidos.
+- `lib/dashboard/calculations.ts`: Cálculo de KPIs mensuales y proyecciones en PEN con eventos, presupuestos, cuotas y préstamos.
+- `app/(app)/dashboard/actions.ts`: Server Actions para configurar la liquidez y gestionar eventos futuros proyectados.
+- `components/dashboard/dashboard-panel.tsx`: Dashboard operativo con KPIs, toggle de caja, presupuestos, proyecciones y popup de eventos.
 - `app/(app)/cuentas/page.tsx`: Consultas autenticadas y consolidación de datos de cuentas, tarjetas, préstamos e inversiones.
 - `SPEC.md`: Documentación del patrón de altas/ediciones mediante popups, estados vacíos, campos sin valores `0` por defecto y contraste de selectores.
 - `.junie/plans/phase-1-setup-auth-layout.md`: Actualización del estado del plan de entrega (Paso 4 marcado como completado).
@@ -45,10 +48,13 @@
 - `components/activity/shared-repayment-dialog.tsx`, `delete-transaction-button.tsx`, `types.ts`, `styles.ts`: Popup de cobros, eliminación con reversión de saldos y utilidades compartidas.
 
 ## Siguiente Paso Técnico Inmediato
-- **Aplicar la migración** `supabase/migrations/20261029120000_activity_engine.sql` en el proyecto Supabase (por ejemplo con `npx supabase db push` o pegándola en el SQL Editor) y probar un gasto, una compra en cuotas, un gasto compartido con cobro parcial y un pago de tarjeta USD desde cuenta PEN.
+- **Migraciones:** El usuario confirmó que las migraciones del motor de actividad y tarjetas ya fueron ejecutadas en Supabase.
 - **Fase 5 (Mi Mes):**
   - Validar manualmente presupuestos, pagos y reversión contra Supabase.
   - Revisar atomicidad del pago del checklist: actualmente crea la transacción y actualiza el checklist en dos llamadas; una RPC dedicada evitaría estados intermedios ante fallos de red.
+- **Fase 6 (Inicio):**
+  - Validar manualmente el toggle de caja y eventos únicos/recurrentes.
+  - Confirmar el tipo de cambio vigente y los escenarios de cuotas/préstamos en la proyección.
 
 ## Errores Pendientes, Advertencias y Decisiones Técnicas
 - **TypeScript & Linting:** 0 errores en `npx tsc --noEmit`, 0 advertencias en `npm run lint`.
@@ -70,6 +76,7 @@
 - **Tarjetas:** La línea de crédito ahora se configura en una sola moneda (PEN o USD); la deuda continúa separada por moneda y los saldos iniciales editables ajustan el saldo vigente por la diferencia para conservar movimientos posteriores.
 - **Línea de crédito:** Cada tarjeta tiene una única línea en PEN o USD. Los consumos en la otra moneda se convierten con el tipo de cambio aplicado antes de validar y descontar la línea.
 - **Alertas de línea:** Cada tarjeta tiene un umbral configurable de utilización (`credit_limit_alert_percentage`), predeterminado en 70%; se muestra porcentaje, barra de progreso y alerta visual al alcanzarlo.
+- **Resumen de crédito:** Mis Cuentas muestra totales generales de tarjetas activas, línea y deuda equivalente en PEN, crédito disponible y utilización consolidada.
 - **SUNAT:** Configuración permite sincronizar el tipo de cambio de venta publicado por SUNAT (`tipoCambio.txt`) y guardarlo por fecha en `exchange_rates`.
 - **Formularios:** Los campos numéricos de alta ya no fuerzan `0`, permitiendo visualizar sus placeholders; los select usan contraste explícito para temas claro y oscuro.
 - **Edición:** Las cuentas y tarjetas se editan mediante popups minimalistas; cada popup permite actualizar todos los atributos configurables y conserva el ajuste diferencial del saldo/deuda vigente.
@@ -77,6 +84,17 @@
 - **Registros:** Las altas de cuentas, tarjetas, préstamos, inversiones, rendimientos, categorías, tipos de cambio y onboarding se abren desde popups; las pantallas mantienen listados/estados vacíos sin formularios permanentes.
 - **Presupuestos:** El consumo se muestra por categoría con barra de progreso y alerta visual al superar el tope; se calcula en PEN usando el último tipo de cambio.
 - **Checklist:** Las plantillas pueden editarse desde popup y los pagos pueden revertirse mediante `delete_transaction`, restaurando el estado pendiente del periodo.
+- **Fase 6:** El dashboard consolida cuentas, inversiones y deudas en PEN; calcula ingresos, gastos, balance neto, consumo de presupuestos y proyecciones de seis meses.
+- **Resumen de presupuestos:** El dashboard muestra una vista consolidada con total presupuestado, total gastado, diferencia disponible/excedida y porcentaje global utilizado, además del detalle por categoría.
+- **Liquidez:** El dashboard permite incluir o excluir la caja de efectivo mediante `user_settings.include_cash_in_balance`.
+- **Proyecciones:** Los eventos futuros pueden registrarse y eliminarse desde popup; los eventos recurrentes se aplican desde su mes inicial y se suman cuotas activas, presupuestos y cuotas de préstamos.
+- **Dashboard operativo:** La pestaña inicial muestra solo resultados reales y ofrece `Nueva Operación` para registrar gastos rápidamente; las proyecciones y eventos futuros se trasladaron a una pestaña independiente.
+- **Proyecciones separadas:** La pestaña de proyecciones ya no reutiliza patrimonio, liquidez ni KPIs reales. Genera un horizonte de 12 meses, permite seleccionar el mes final y muestra valores proyectados acumulados de ingresos, gastos, balance, liquidez y patrimonio.
+- **Detalle del flujo proyectado:** Las cifras mensuales de ingresos y gastos muestran un tooltip al pasar el mouse o enfocar el valor, con los eventos, presupuestos, cuotas de tarjetas y cuotas de préstamos considerados en cada cálculo.
+- **Detalle de indicadores proyectados:** Los indicadores acumulados de ingresos, gastos, balance, liquidez y patrimonio también muestran sus componentes al pasar el mouse o enfocarlos; la liquidez identifica el saldo actual incluido y el balance acumulado.
+- **Descarga de proyecciones:** La pestaña de proyecciones permite seleccionar un rango desde/hasta por mes y descargar un PDF local correctamente organizado en tablas paginadas, con encabezado, fecha de generación, resumen, flujo mensual y detalle completo de conceptos de ingresos y gastos.
+- **Eventos recurrentes:** El formulario utiliza todos los valores enviados para reconocer correctamente el checkbox de repetición mensual y activar su efecto en los meses posteriores.
+- **Edición y conversión de proyecciones:** Los eventos futuros pueden editarse para ejecutar simulaciones con distintos valores. Los ingresos se convierten solicitando la cuenta receptora; los gastos solicitan cuenta/caja o tarjeta y tipo de cambio cuando la línea de crédito está en otra moneda, registran la operación real y desactivan el evento proyectado.
 - **Especificación funcional:** `SPEC.md` documenta el patrón obligatorio de popups, incluyendo centrado, backdrop blur, scroll interno, accesibilidad, estados vacíos, placeholders visibles y contraste de `select`.
 - **Compilación:** Build de producción exitoso con Next.js 16.4.3 Turbopack (`npm run build`) con generación de rutas parciales (Partial Prerendering / Cache Components) para todas las vistas principales.
 - **Decisiones Técnicas:**
