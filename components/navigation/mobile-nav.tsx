@@ -34,7 +34,7 @@ export function MobileNav({ className }: MobileNavProps) {
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-colors',
+                'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300',
                 isActive
                   ? 'text-zinc-950 dark:text-zinc-50 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'

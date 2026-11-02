@@ -88,7 +88,9 @@ async function DashboardContent() {
     type: transaction.type,
     amount: transaction.amount,
     currency: transaction.currency,
-    categoryId: transaction.category_id,
+    categoryId: transaction.type === 'REFUND' && transaction.parent_transaction_id
+      ? transactionById.get(transaction.parent_transaction_id)?.category_id ?? transaction.category_id
+      : transaction.category_id,
     transactionDate: transaction.transaction_date,
     isInstallment: transaction.is_installment,
     parentTransactionId: transaction.parent_transaction_id,

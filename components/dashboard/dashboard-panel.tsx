@@ -33,10 +33,7 @@ function ProjectedEventDialog({
   const [source, setSource] = useState<'ACCOUNT' | 'CARD'>('ACCOUNT');
   const [accountId, setAccountId] = useState('');
   const [cardId, setCardId] = useState('');
-  const [rate, setRate] = useState('');
-  const selectedCard = operationData.cards.find((card) => card.id === cardId);
   const matchingAccounts = operationData.accounts.filter((account) => !event || account.currency === event.currency);
-  const needsCardRate = Boolean(event && selectedCard && selectedCard.credit_limit_currency !== event.currency);
 
   useEffect(() => {
     if (state.token) dialogRef.current?.close();
@@ -76,7 +73,6 @@ function ProjectedEventDialog({
                 <>
                   <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => { setSource('ACCOUNT'); setCardId(''); }} className={source === 'ACCOUNT' ? primaryButtonClass : 'rounded-lg border border-zinc-300 px-3 py-2 text-xs dark:border-zinc-700'}>Cuenta o efectivo</button><button type="button" onClick={() => { setSource('CARD'); setAccountId(''); }} className={source === 'CARD' ? primaryButtonClass : 'rounded-lg border border-zinc-300 px-3 py-2 text-xs dark:border-zinc-700'}>Tarjeta</button></div>
                   {source === 'ACCOUNT' ? <label className="block text-sm">Cuenta que paga<select name="accountId" required value={accountId} onChange={(item) => setAccountId(item.target.value)} className={selectClass}><option value="">Selecciona una cuenta en {event.currency}</option>{matchingAccounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label> : <label className="block text-sm">Tarjeta que paga<select name="creditCardId" required value={cardId} onChange={(item) => setCardId(item.target.value)} className={selectClass}><option value="">Selecciona una tarjeta</option>{operationData.cards.filter((card) => event.currency === 'PEN' || card.is_bimonetary).map((card) => <option key={card.id} value={card.id}>{card.name} · línea {card.credit_limit_currency}</option>)}</select></label>}
-                  {source === 'CARD' && needsCardRate && <label className="block text-sm">Tipo de cambio aplicado<input name="exchangeRate" required type="number" min="0.0001" step="0.0001" value={rate} onChange={(item) => setRate(item.target.value)} placeholder={operationData.exchangeRate?.toFixed(4) ?? 'Ej. 3.7500'} className={fieldClass} /></label>}
                 </>
               )}
             </>

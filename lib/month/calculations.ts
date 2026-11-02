@@ -1,4 +1,4 @@
-import { convertAmount, roundMoney, type Currency } from '@/lib/activity/calculations';
+import { convertAmount, roundMoney, type Currency } from '../activity/calculations.ts';
 
 export interface BudgetUsageInput {
   id: string;
@@ -45,7 +45,7 @@ export function isInstallmentActive(period: string, startPeriod: string, totalIn
 }
 
 export function calculateBudgetUsage(
-  categoryId: string,
+  categoryId: string | null,
   period: string,
   transactions: BudgetUsageInput[],
   installments: InstallmentUsageInput[],
@@ -80,6 +80,7 @@ export function calculateBudgetUsage(
   const refunds = transactions
     .filter((transaction) =>
       transaction.type === 'REFUND' &&
+      transaction.categoryId === categoryId &&
       transaction.parentTransactionId &&
       transaction.transactionDate.slice(0, 7) === period
     )

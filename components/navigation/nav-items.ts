@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   WalletCards,
   CalendarCheck2,
+  History,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -37,6 +38,12 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     label: 'Mi Mes',
     href: '/mi-mes',
     icon: CalendarCheck2,
+    exact: false,
+  },
+  {
+    label: 'Historial',
+    href: '/historial',
+    icon: History,
     exact: false,
   },
 ];

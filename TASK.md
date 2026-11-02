@@ -36,7 +36,7 @@
 - `app/(app)/cuentas/page.tsx`: Consultas autenticadas y consolidación de datos de cuentas, tarjetas, préstamos e inversiones.
 - `SPEC.md`: Documentación del patrón de altas/ediciones mediante popups, estados vacíos, campos sin valores `0` por defecto y contraste de selectores.
 - `.junie/plans/phase-1-setup-auth-layout.md`: Actualización del estado del plan de entrega (Paso 4 marcado como completado).
-- `supabase/migrations/20261029120000_activity_engine.sql`: Funciones SQL atómicas `create_transaction`, `register_shared_repayment` y `delete_transaction` (más helpers `adjust_*`, `apply_transaction_effects`, `convert_amount`) que actualizan `accounts`, `credit_cards`, `loans`, `investments`, `credit_card_statements`, `installment_plans` y `shared_expense_splits` en una sola transacción, con RLS vigente (SECURITY INVOKER).
+- `supabase/backup/20261029120000_activity_engine.sql`: Funciones SQL atómicas `create_transaction`, `register_shared_repayment` y `delete_transaction` (más helpers `adjust_*`, `apply_transaction_effects`, `convert_amount`) que actualizan `accounts`, `credit_cards`, `loans`, `investments`, `credit_card_statements`, `installment_plans` y `shared_expense_splits` en una sola transacción, con RLS vigente (SECURITY INVOKER).
 - `types/database.types.ts`: Sección `Functions` con los argumentos y retornos tipados de las tres funciones RPC.
 - `lib/activity/calculations.ts`: Conversión PEN/USD con TC aplicado, plan de cuotas (amortización francesa con TEA 0%, de la tarjeta o personalizada), periodo de inicio según `closing_day`, timestamp en hora de Lima y estado de deuda compartida.
 - `lib/format.ts`: Formato de moneda y fechas (zona America/Lima).

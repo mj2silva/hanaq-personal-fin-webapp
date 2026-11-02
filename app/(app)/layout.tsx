@@ -43,7 +43,7 @@ export default function AppLayout({
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-zinc-50 shadow-xs dark:bg-zinc-100 dark:text-zinc-900">
                 <Wallet className="h-5 w-5" aria-hidden="true" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col md:hidden lg:flex">
                 <span className="text-sm font-bold leading-tight">Finanzas Personales</span>
                 <span className="text-[10px] text-zinc-500 font-normal leading-tight dark:text-zinc-400">ERP & Tesorería</span>
               </div>

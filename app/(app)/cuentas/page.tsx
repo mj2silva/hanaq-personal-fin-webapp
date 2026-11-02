@@ -4,6 +4,7 @@ import { connection } from 'next/server';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AccountsPanel } from '@/components/accounts/accounts-panel';
+import { calculateCardSpending } from '@/lib/accounts/credit-card-calculations';
 
 export const metadata: Metadata = {
   title: 'Mis Cuentas | Finanzas Personales',
@@ -26,7 +27,7 @@ async function CuentasContent() {
   ]);
   if (accountsError || cardsError || loansError || investmentsError || transactionsError) throw new Error('No se pudo cargar el módulo de cuentas.');
 
-  const exchangeRate = rate?.usd_to_pen_rate ?? 1;
+  const exchangeRate = rate?.usd_to_pen_rate ?? null;
   const now = new Date();
   const currentMonth = now.toISOString().slice(0, 7);
   const currentYear = now.getUTCFullYear().toString();
@@ -34,21 +35,16 @@ async function CuentasContent() {
     const expenses = (transactions ?? []).filter(
       (transaction) => transaction.credit_card_id === card.id && transaction.type === 'EXPENSE'
     );
-    const toPen = (amount: number, currency: string) => currency === 'USD' ? amount * exchangeRate : amount;
+    const monthlySpending = calculateCardSpending(expenses, currentMonth, exchangeRate);
+    const annualSpending = calculateCardSpending(expenses, currentYear, exchangeRate);
     return {
       ...card,
-      monthlySpend: expenses
-        .filter((transaction) => transaction.transaction_date.slice(0, 7) === currentMonth)
-        .reduce((sum, transaction) => sum + toPen(transaction.amount, transaction.currency), 0),
-      annualSpend: expenses
-        .filter((transaction) => transaction.transaction_date.slice(0, 4) === currentYear)
-        .reduce((sum, transaction) => sum + toPen(transaction.amount, transaction.currency), 0),
-      monthlySpendUsd: expenses
-        .filter((transaction) => transaction.transaction_date.slice(0, 7) === currentMonth && transaction.currency === 'USD')
-        .reduce((sum, transaction) => sum + transaction.amount, 0),
-      annualSpendUsd: expenses
-        .filter((transaction) => transaction.transaction_date.slice(0, 4) === currentYear && transaction.currency === 'USD')
-        .reduce((sum, transaction) => sum + transaction.amount, 0),
+      monthlySpend: monthlySpending.pen,
+      annualSpend: annualSpending.pen,
+      monthlySpendUsd: monthlySpending.usd,
+      annualSpendUsd: annualSpending.usd,
+      monthlySpendRequiresRate: monthlySpending.requiresReferenceRate,
+      annualSpendRequiresRate: annualSpending.requiresReferenceRate,
     };
   });
 

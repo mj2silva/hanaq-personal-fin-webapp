@@ -116,7 +116,6 @@ function OperationForm({
     amountCurrency = account?.currency ?? null;
   } else if (type === 'EXPENSE') {
     amountCurrency = source === 'ACCOUNT' ? account?.currency ?? null : effectiveCardCurrency;
-    targetCurrency = source === 'CARD' ? card?.credit_limit_currency ?? null : null;
   } else if (type === 'TRANSFER') {
     if (transferKind === 'ACCOUNT') {
       amountCurrency = account?.currency ?? null;

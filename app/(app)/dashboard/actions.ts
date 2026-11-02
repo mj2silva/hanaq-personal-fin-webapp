@@ -26,7 +26,6 @@ const convertEventSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha no es válida.'),
   accountId: z.string().uuid().optional(),
   creditCardId: z.string().uuid().optional(),
-  exchangeRate: z.coerce.number().positive().finite().optional(),
 });
 
 async function authenticatedClient() {
@@ -123,7 +122,6 @@ export async function convertProjectedEvent(
         date: value(formData, 'date'),
         accountId: value(formData, 'accountId'),
         creditCardId: value(formData, 'creditCardId'),
-        exchangeRate: value(formData, 'exchangeRate'),
       });
       const { supabase, user } = await authenticatedClient();
       const { data: event, error: eventError } = await supabase
@@ -152,7 +150,6 @@ export async function convertProjectedEvent(
         p_category_id: event.category_id,
         p_account_id: input.accountId ?? null,
         p_credit_card_id: input.creditCardId ?? null,
-        p_applied_exchange_rate: input.exchangeRate ?? null,
       } as const;
       const { error: transactionError } = await supabase.rpc('create_transaction', common);
       if (transactionError) {

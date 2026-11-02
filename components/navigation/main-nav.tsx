@@ -30,7 +30,7 @@ export function MainNav({ className }: MainNavProps) {
             href={item.href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'group inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'group inline-flex items-center gap-1 rounded-lg px-1.5 py-2 text-sm font-medium transition-colors lg:gap-2 lg:px-3',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300',
               isActive
                 ? 'bg-zinc-900 text-zinc-50 shadow-xs dark:bg-zinc-100 dark:text-zinc-900'

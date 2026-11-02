@@ -5,6 +5,7 @@ import { CheckCircle2, PieChart } from 'lucide-react';
 import { RegistrationDialog } from '@/components/accounts/registration-dialog';
 import { selectClass, fieldClass, primaryButtonClass } from '@/components/activity/styles';
 import {
+  copyPreviousBudgets,
   payFixedExpense,
   reverseFixedExpense,
   saveBudget,
@@ -155,6 +156,7 @@ export function MonthPanel({
   const expenseCategories = categories.filter((category) => category.type === 'EXPENSE' && category.is_active);
   const budgetByCategory = new Map(budgets.map((budget) => [budget.category_id, budget]));
   const [toggleState, toggleAction] = useActionState(toggleFixedExpense, {});
+  const [copyState, copyAction, copyPending] = useActionState(copyPreviousBudgets, {});
 
   return (
     <div className="space-y-8">
@@ -168,6 +170,10 @@ export function MonthPanel({
 
       <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center gap-2.5"><PieChart className="h-5 w-5" /><h2 className="text-lg font-semibold">Presupuestos por categoría</h2></div>
+        <form action={copyAction} className="mt-4 flex flex-wrap items-center gap-3">
+          <button className={primaryButtonClass} disabled={copyPending}>{copyPending ? 'Copiando...' : 'Copiar presupuestos del mes anterior'}</button>
+          <Message state={copyState} />
+        </form>
         {expenseCategories.length === 0 ? <p className="mt-4 text-sm text-zinc-500">Crea una categoría de gasto en Configuración para asignar presupuestos.</p> : (
           <ul className="mt-4 divide-y divide-zinc-200 dark:divide-zinc-800">
             {expenseCategories.map((category) => {

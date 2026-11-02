@@ -39,6 +39,34 @@ function revalidateMonth() {
   revalidatePath('/dashboard');
 }
 
+export async function copyPreviousBudgets(): Promise<MonthActionState> {
+  try {
+    const { supabase, user } = await authenticatedClient();
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+    const year = Number(parts.find((part) => part.type === 'year')?.value);
+    const month = Number(parts.find((part) => part.type === 'month')?.value);
+    const period = `${year}-${String(month).padStart(2, '0')}`;
+    const previousPeriod = `${month === 1 ? year - 1 : year}-${String(month === 1 ? 12 : month - 1).padStart(2, '0')}`;
+    const { data: previous, error: readError } = await supabase.from('budgets')
+      .select('category_id, limit_amount_pen')
+      .eq('user_id', user.id)
+      .eq('period_year_month', previousPeriod);
+    if (readError) throw new Error('No se pudieron consultar los presupuestos anteriores.');
+    if (!previous?.length) return { success: 'No hay presupuestos en el mes anterior.' };
+
+    const { data: inserted, error: writeError } = await supabase.from('budgets').upsert(
+      previous.map((budget) => ({ ...budget, user_id: user.id, period_year_month: period })),
+      { onConflict: 'user_id,category_id,period_year_month', ignoreDuplicates: true }
+    ).select('category_id');
+    if (writeError) throw new Error('No se pudieron copiar los presupuestos.');
+    revalidateMonth();
+    const count = inserted?.length ?? 0;
+    return { success: count ? `Se copiaron ${count} presupuesto(s). Los existentes no se modificaron.` : 'No se copiaron presupuestos: ya existen para este mes.', token: crypto.randomUUID() };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function saveBudget(
   _state: MonthActionState | null,
   formData: FormData

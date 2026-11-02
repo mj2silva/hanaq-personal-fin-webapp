@@ -154,6 +154,9 @@ export async function saveExchangeRate(
 
     if (error) throw new Error('No se pudo guardar el tipo de cambio.');
     revalidatePath('/configuracion');
+    revalidatePath('/cuentas');
+    revalidatePath('/actividad');
+    revalidatePath('/dashboard');
     return { success: 'Tipo de cambio guardado correctamente.' };
   } catch (error) {
     return actionError(error);
@@ -187,6 +190,7 @@ export async function syncSunatExchangeRate(
     revalidatePath('/configuracion');
     revalidatePath('/cuentas');
     revalidatePath('/actividad');
+    revalidatePath('/dashboard');
     return { success: `Tipo de cambio SUNAT sincronizado: ${input.usdToPenRate.toFixed(4)}.` };
   } catch (error) {
     return actionError(error);
@@ -272,6 +276,7 @@ export async function completeOnboarding(
     revalidatePath('/configuracion');
     revalidatePath('/dashboard');
     revalidatePath('/cuentas');
+    revalidatePath('/actividad');
     return { success: 'Configuración inicial completada correctamente.' };
   } catch (error) {
     return actionError(error);

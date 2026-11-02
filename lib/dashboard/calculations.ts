@@ -1,4 +1,4 @@
-import { convertAmount, roundMoney, type Currency } from '@/lib/activity/calculations';
+import { convertAmount, roundMoney, type Currency } from '../activity/calculations.ts';
 
 export interface DashboardTransaction {
   type: string;
