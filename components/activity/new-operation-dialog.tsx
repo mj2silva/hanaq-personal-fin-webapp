@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { createOperation, type ActivityActionState } from '@/app/(app)/actividad/actions';
 import {
   calculateInstallmentPlan,
+  calculateLoanPayment,
   convertAmount,
   resolveInstallmentStartPeriod,
   type Currency,
@@ -98,6 +99,7 @@ function OperationForm({
   const [customTea, setCustomTea] = useState('');
   const [shared, setShared] = useState(false);
   const [splits, setSplits] = useState<SplitRow[]>([{ id: 1, name: '', amount: '' }]);
+  const [loanInterest, setLoanInterest] = useState('');
 
   const account = data.accounts.find((item) => item.id === accountId);
   const destination = data.accounts.find((item) => item.id === destinationId);
@@ -109,6 +111,9 @@ function OperationForm({
   const cardCurrencyOptions: Currency[] = card && !card.is_bimonetary ? ['PEN'] : ['PEN', 'USD'];
   const effectiveCardCurrency: Currency = cardCurrencyOptions.includes(cardCurrency) ? cardCurrency : 'PEN';
   const amountNumber = Number(amount);
+  const loanPreview = type === 'LOAN_PAYMENT' && loan && Number.isFinite(amountNumber) && amountNumber > 0
+    ? calculateLoanPayment(loan.current_balance, loan.tea_percentage, amountNumber, loanInterest === '' || !Number.isFinite(Number(loanInterest)) ? null : Number(loanInterest))
+    : null;
 
   let amountCurrency: Currency | null = null;
   let targetCurrency: Currency | null = null;
@@ -169,6 +174,7 @@ function OperationForm({
     setDestinationId('');
     setCardId('');
     setLoanId('');
+    setLoanInterest('');
     setInvestmentId('');
     setParentId('');
     setRate('');
@@ -415,7 +421,7 @@ function OperationForm({
           <>
             <label className="text-sm">
               Préstamo
-              <select name="loanId" required value={loanId} onChange={(event) => setLoanId(event.target.value)} className={selectClass}>
+              <select name="loanId" required value={loanId} onChange={(event) => { setLoanId(event.target.value); setLoanInterest(''); }} className={selectClass}>
                 <option value="">Selecciona un préstamo</option>
                 {data.loans.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -425,6 +431,16 @@ function OperationForm({
               </select>
             </label>
             {accountSelect('accountId', 'Cuenta desde la que pagas', accountId, setAccountId)}
+            <label className="text-sm sm:col-span-2">
+              Interés real del banco (opcional)
+              <input name="loanInterest" type="number" min="0" step="0.01" value={loanInterest} onChange={(event) => setLoanInterest(event.target.value)} className={fieldClass} />
+              <span className="mt-1 block text-xs text-zinc-500">Déjalo vacío para estimar con la TEA. El resto del pago se considera capital; no incluyas seguros ni comisiones.</span>
+            </label>
+            {loan && loanPreview && <div className="text-sm sm:col-span-2" aria-live="polite">
+              <p>Interés {loanInterest === '' ? `estimado · TEA ${loan.tea_percentage}%` : 'ingresado'}: {formatMoney(loanPreview.interest, loan.currency)}</p>
+              {loanPreview.principal <= 0 ? <p>El pago debe superar el interés mensual.</p> : loanPreview.remaining < 0 ? <p>El pago supera el saldo más el interés mensual.</p> : loan.remaining_installments === 1 && loanPreview.remaining > 0 ? <p>La última cuota debe liquidar el saldo y el interés.</p> : <p>Capital: {formatMoney(loanPreview.principal, loan.currency)} · Saldo estimado: {formatMoney(loanPreview.remaining, loan.currency)}</p>}
+              <p className="text-xs text-zinc-500">El cálculo estimado supone un mes; contrástalo con tu entidad financiera.</p>
+            </div>}
           </>
         )}
 

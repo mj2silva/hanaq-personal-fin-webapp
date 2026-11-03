@@ -79,6 +79,7 @@ const operationSchema = z.discriminatedUnion('type', [
     accountId: z.string().uuid('Selecciona la cuenta desde la que pagas.'),
     loanId: z.string().uuid('Selecciona el préstamo.'),
     exchangeRate: optionalRate,
+    loanInterest: z.coerce.number().min(0).finite().refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, 'El interés debe tener como máximo dos decimales.').optional(),
   }),
   z.object({
     ...baseFields,
@@ -167,6 +168,7 @@ export async function createOperation(
       categoryId: text(formData, 'categoryId'),
       exchangeRate: text(formData, 'exchangeRate'),
       loanId: text(formData, 'loanId'),
+      loanInterest: text(formData, 'loanInterest'),
       investmentId: text(formData, 'investmentId'),
       parentTransactionId: text(formData, 'parentTransactionId'),
       installments: text(formData, 'installments'),
@@ -248,6 +250,7 @@ export async function createOperation(
           p_currency: 'PEN',
           p_account_id: input.accountId,
           p_loan_id: input.loanId,
+          p_loan_interest: input.loanInterest ?? null,
           p_applied_exchange_rate: input.exchangeRate ?? null,
         };
         break;
@@ -302,6 +305,28 @@ export async function deleteTransaction(
     if (error) throw rpcFailure(error, 'No se pudo eliminar el movimiento.');
     revalidateActivity();
     return { success: 'Movimiento eliminado y saldos revertidos.', token: crypto.randomUUID() };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function editTransaction(
+  _state: ActivityActionState | null,
+  formData: FormData
+): Promise<ActivityActionState> {
+  try {
+    const transactionId = z.string().uuid().parse(text(formData, 'transactionId'));
+    const description = z.string().trim().min(1).max(255).parse(text(formData, 'description'));
+    const changes: Record<string, string | number> = { description };
+    const amount = text(formData, 'amount');
+    const date = text(formData, 'date');
+    if (amount && amount !== text(formData, 'originalAmount')) changes.amount = amountSchema.parse(amount);
+    if (date && date !== text(formData, 'originalDate')) changes.transaction_date = toTransactionTimestamp(dateSchema.parse(date));
+    const { supabase } = await authenticatedClient();
+    const { error } = await supabase.rpc('edit_transaction', { p_transaction_id: transactionId, p_changes: changes });
+    if (error) throw rpcFailure(error, 'No se pudo editar el movimiento.');
+    revalidateActivity();
+    return { success: 'Movimiento actualizado.', token: crypto.randomUUID() };
   } catch (error) {
     return failure(error);
   }

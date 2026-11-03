@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowLeftRight, Receipt, Users } from 'lucide-react';
 import { formatMoney, formatShortDate, toLimaMonth } from '@/lib/format';
 import { DeleteTransactionButton } from './delete-transaction-button';
+import { EditTransactionDialog } from './edit-transaction-dialog';
 import { NewOperationDialog } from './new-operation-dialog';
 import { SharedRepaymentDialog } from './shared-repayment-dialog';
 import { fieldClass, selectClass } from './styles';
@@ -222,6 +223,7 @@ export function ActivityPanel({
                           <p className="text-xs text-zinc-500">≈ {formatMoney(transaction.converted_amount, transaction.currency === 'USD' ? 'PEN' : 'USD')}</p>
                         )}
                       </div>
+                      <EditTransactionDialog transaction={transaction} />
                       <DeleteTransactionButton transactionId={transaction.id} description={transaction.description} />
                     </div>
                   </li>

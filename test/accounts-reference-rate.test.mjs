@@ -79,8 +79,8 @@ function renderAccountsPanel(cardProps, exchangeRate) {
     if (name === '@/app/(app)/cuentas/actions') {
       return Object.fromEntries(['createAccount', 'createCreditCard', 'createInvestment', 'createLoan', 'recordInvestmentLog'].map((action) => [action, () => {}]));
     }
-    if (name === '@/components/accounts/edit-account-dialog' || name === '@/components/accounts/edit-card-dialog' || name === '@/components/accounts/registration-dialog') {
-      return { EditAccountDialog: EmptyDialog, EditCardDialog: EmptyDialog, RegistrationDialog: EmptyDialog };
+    if (name === '@/components/accounts/edit-account-dialog' || name === '@/components/accounts/edit-card-dialog' || name === '@/components/accounts/edit-loan-rates-dialog' || name === '@/components/accounts/registration-dialog') {
+      return { EditAccountDialog: EmptyDialog, EditCardDialog: EmptyDialog, EditLoanRatesDialog: EmptyDialog, RegistrationDialog: EmptyDialog };
     }
     if (name === '@/lib/accounts/credit-card-calculations') return {
       calculateCardLineUsage,

@@ -1,10 +1,11 @@
 'use client';
 
 import { useActionState } from 'react';
-import { createAccount, createCreditCard, createInvestment, createLoan, recordInvestmentLog, type AccountsActionState } from '@/app/(app)/cuentas/actions';
+import { createAccount, createCreditCard, createInvestment, createLoan, recordInvestmentLog, reconstructLoanHistory, type AccountsActionState } from '@/app/(app)/cuentas/actions';
 import type { Tables } from '@/types/database.types';
 import { EditAccountDialog } from '@/components/accounts/edit-account-dialog';
 import { EditCardDialog } from '@/components/accounts/edit-card-dialog';
+import { EditLoanRatesDialog } from '@/components/accounts/edit-loan-rates-dialog';
 import { RegistrationDialog } from '@/components/accounts/registration-dialog';
 import { calculateCardLineUsage, calculateCreditCardTotals } from '@/lib/accounts/credit-card-calculations';
 
@@ -31,6 +32,20 @@ function Message({ state }: { state: AccountsActionState }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900"><h2 className="text-lg font-semibold">{title}</h2>{children}</section>;
+}
+
+function LoanHistoryReview({ loan }: { loan: Loan }) {
+  const [state, action, pending] = useActionState(reconstructLoanHistory, {});
+  const money = (value: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: loan.currency }).format(value);
+  return <form action={action} className="mt-3 space-y-2 text-xs">
+    <input type="hidden" name="loanId" value={loan.id} />
+    <p>La estimación usa la TEA actual y un mes por pago. Es una aproximación; contrástala con el banco.</p>
+    {state.estimatedBalance !== undefined && state.previousBalance !== undefined && <p>Saldo actual: {money(state.previousBalance)} · Saldo estimado: {money(state.estimatedBalance)}</p>}
+    <Message state={state} />
+    {state.estimatedBalance !== undefined
+      ? <button name="apply" value="true" disabled={pending} className="underline">{pending ? 'Aplicando...' : 'Confirmar saldo estimado'}</button>
+      : <button disabled={pending} className="underline">{pending ? 'Calculando...' : 'Revisar pagos anteriores'}</button>}
+  </form>;
 }
 
 export function AccountsPanel({ accounts, cards, loans, investments, exchangeRate }: {
@@ -178,7 +193,26 @@ export function AccountsPanel({ accounts, cards, loans, investments, exchangeRat
       <Section title="Préstamos activos">
         <div className="mt-4 space-y-3">
           {loans.length === 0 && <p className="text-sm text-zinc-500">No hay préstamos registrados.</p>}
-          {loans.map((loan) => <div key={loan.id} className="flex items-center justify-between rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/60"><div><p className="font-medium">{loan.lender_name}</p><p className="text-xs text-zinc-500">{loan.remaining_installments}/{loan.total_installments} cuotas · TEA {loan.tea_percentage}%</p></div><div className="text-right"><p className="font-semibold">{money(loan.current_balance, loan.currency)}</p><p className="text-xs text-zinc-500">{money(loan.monthly_installment_amount, loan.currency)} / mes</p></div></div>)}
+          {loans.map((loan) => (
+            <div key={loan.id} className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/60">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium">{loan.lender_name}</p>
+                  <p className="text-xs text-zinc-500">
+                    {loan.remaining_installments}/{loan.total_installments} cuotas · TEA {loan.tea_percentage}%{loan.tcea_percentage !== null ? ` · TCEA ${loan.tcea_percentage}%` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="font-semibold">{money(loan.current_balance, loan.currency)}</p>
+                    <p className="text-xs text-zinc-500">{money(loan.monthly_installment_amount, loan.currency)} / mes</p>
+                  </div>
+                  <EditLoanRatesDialog loan={loan} />
+                </div>
+              </div>
+              <LoanHistoryReview loan={loan} />
+            </div>
+          ))}
         </div>
         <div className="mt-5 flex justify-end">
           <RegistrationDialog title="Registrar préstamo" description="Añade el saldo, tasa y cronograma del préstamo." trigger="Añadir préstamo">
@@ -188,6 +222,7 @@ export function AccountsPanel({ accounts, cards, loans, investments, exchangeRat
               <input name="initialAmount" required type="number" min="0" step="0.01" placeholder="Monto inicial" className={input} />
               <input name="currentBalance" required type="number" min="0" step="0.01" placeholder="Saldo actual" className={input} />
               <input name="tea" required type="number" min="0" step="0.01" placeholder="TEA %" className={input} />
+              <label className="text-sm">TCEA % (opcional)<input name="tcea" type="number" min="0" max="100" step="0.01" placeholder="Costo total informativo" className={input} /></label>
               <input name="monthlyInstallment" required type="number" min="0" step="0.01" placeholder="Cuota mensual" className={input} />
               <input name="totalInstallments" required type="number" min="1" placeholder="Total cuotas" className={input} />
               <input name="remainingInstallments" required type="number" min="0" placeholder="Cuotas restantes" className={input} />

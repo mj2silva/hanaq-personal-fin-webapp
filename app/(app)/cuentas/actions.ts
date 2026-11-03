@@ -9,6 +9,11 @@ export interface AccountsActionState {
   success?: string | null;
 }
 
+export interface LoanHistoryState extends AccountsActionState {
+  previousBalance?: number;
+  estimatedBalance?: number;
+}
+
 const accountSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es obligatorio.').max(100),
   type: z.enum(['BANK_ACCOUNT', 'CASH_BOX']),
@@ -59,6 +64,7 @@ const loanSchema = z.object({
   initialAmount: z.coerce.number().positive().finite(),
   currentBalance: z.coerce.number().min(0).finite(),
   tea: z.coerce.number().min(0).max(100).finite(),
+  tcea: z.coerce.number().min(0).max(100).finite().nullable(),
   monthlyInstallment: z.coerce.number().positive().finite(),
   totalInstallments: z.coerce.number().int().positive(),
   remainingInstallments: z.coerce.number().int().min(0),
@@ -308,6 +314,7 @@ export async function createLoan(
       initialAmount: formData.get('initialAmount'),
       currentBalance: formData.get('currentBalance'),
       tea: formData.get('tea'),
+      tcea: formData.get('tcea') === '' || formData.get('tcea') === null ? null : formData.get('tcea'),
       monthlyInstallment: formData.get('monthlyInstallment'),
       totalInstallments: formData.get('totalInstallments'),
       remainingInstallments: formData.get('remainingInstallments'),
@@ -324,6 +331,7 @@ export async function createLoan(
       initial_amount: input.initialAmount,
       current_balance: input.currentBalance,
       tea_percentage: input.tea,
+      tcea_percentage: input.tcea,
       monthly_installment_amount: input.monthlyInstallment,
       total_installments: input.totalInstallments,
       remaining_installments: input.remainingInstallments,
@@ -332,6 +340,51 @@ export async function createLoan(
     if (error) throw new Error('No se pudo crear el préstamo.');
     revalidatePath('/cuentas');
     return { success: 'Préstamo creado correctamente.' };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function updateLoanRate(_state: AccountsActionState | null, formData: FormData): Promise<AccountsActionState> {
+  try {
+    const id = z.string().uuid().parse(formData.get('id'));
+    const tea = z.coerce.number().min(0).max(100).finite().parse(formData.get('tea'));
+    const raw = formData.get('tcea');
+    const tcea = raw === '' || raw === null ? null : z.coerce.number().min(0).max(100).finite().parse(raw);
+    const { supabase, user } = await authenticatedClient();
+    const { data, error } = await supabase.from('loans').update({ tea_percentage: tea, tcea_percentage: tcea }).eq('id', id).eq('user_id', user.id).select('id').maybeSingle();
+    if (error || !data) throw new Error('No se pudo actualizar el préstamo.');
+    revalidatePath('/cuentas');
+    revalidatePath('/actividad');
+    revalidatePath('/dashboard');
+    return { success: 'Tasas actualizadas correctamente.' };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reconstructLoanHistory(state: LoanHistoryState, formData: FormData): Promise<LoanHistoryState> {
+  try {
+    const loanId = z.string().uuid().parse(formData.get('loanId'));
+    const apply = formData.get('apply') === 'true';
+    if (apply && (state.previousBalance === undefined || state.estimatedBalance === undefined)) {
+      throw new Error('Primero consulta la estimación.');
+    }
+    const { supabase } = await authenticatedClient();
+    const { data, error } = await supabase.rpc('reconstruct_loan_history', {
+      p_loan_id: loanId,
+      p_apply: apply,
+      ...(apply ? { p_expected_previous_balance: state.previousBalance, p_expected_estimated_balance: state.estimatedBalance } : {}),
+    });
+    if (error) throw new Error(error.message);
+    const result = z.object({ previous_balance: z.number(), estimated_balance: z.number() }).parse(data);
+    if (apply) {
+      revalidatePath('/cuentas');
+      revalidatePath('/actividad');
+      revalidatePath('/dashboard');
+      return { success: 'Estimación aplicada. Contrasta el saldo con tu entidad financiera.' };
+    }
+    return { previousBalance: result.previous_balance, estimatedBalance: result.estimated_balance };
   } catch (error) {
     return failure(error);
   }

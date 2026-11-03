@@ -551,6 +551,7 @@ export interface Database {
           payment_due_day: number;
           remaining_installments: number;
           tea_percentage: number;
+          tcea_percentage: number | null;
           total_installments: number;
           user_id: string;
         };
@@ -566,6 +567,7 @@ export interface Database {
           payment_due_day: number;
           remaining_installments: number;
           tea_percentage?: number;
+          tcea_percentage?: number | null;
           total_installments: number;
           user_id: string;
         };
@@ -581,6 +583,7 @@ export interface Database {
           payment_due_day?: number;
           remaining_installments?: number;
           tea_percentage?: number;
+          tcea_percentage?: number | null;
           total_installments?: number;
           user_id?: string;
         };
@@ -943,6 +946,19 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      edit_transaction: {
+        Args: { p_transaction_id: string; p_changes: Json };
+        Returns: Json;
+      };
+      reconstruct_loan_history: {
+        Args: {
+          p_loan_id: string;
+          p_apply?: boolean;
+          p_expected_previous_balance?: number;
+          p_expected_estimated_balance?: number;
+        };
+        Returns: Json;
+      };
       create_transaction: {
         Args: {
           p_type: TransactionType;
@@ -956,6 +972,7 @@ export interface Database {
           p_credit_card_id?: string | null;
           p_applied_exchange_rate?: number | null;
           p_loan_id?: string | null;
+          p_loan_interest?: number | null;
           p_investment_id?: string | null;
           p_parent_transaction_id?: string | null;
           p_installments?: number;

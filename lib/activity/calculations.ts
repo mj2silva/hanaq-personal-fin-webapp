@@ -10,6 +10,12 @@ export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+export function calculateLoanPayment(balance: number, teaPercent: number, payment: number, actualInterest: number | null = null) {
+  const interest = actualInterest ?? roundMoney(balance * (Math.pow(1 + teaPercent / 100, 1 / 12) - 1));
+  const principal = roundMoney(payment - interest);
+  return { interest, principal, remaining: roundMoney(balance - principal) };
+}
+
 /**
  * Converts an amount between PEN and USD using the applied exchange rate (USD -> PEN).
  * Mirrors public.convert_amount in the activity engine migration.

@@ -59,7 +59,7 @@ Los datos mensuales y anuales se calculan con las reglas financieras existentes.
 - Corregir la atribución de reembolsos por categoría y alinear el dashboard.
 - Añadir pruebas de cuotas, pagos fijos, categorías y conversión monetaria.
 
-### ! Step 3: Presentar la sección de historial
+### ✓ Step 3: Presentar la sección de historial
 Una sección accesible permite consultar meses anteriores y el acumulado anual.
 - Crear la página protegida y el panel con selección de mes y resumen anual.
 - Integrar la sección en la navegación compartida y adaptar la presentación móvil.
