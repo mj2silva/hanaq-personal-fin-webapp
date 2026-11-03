@@ -33,6 +33,38 @@ export interface ProjectionMonth {
   expenseDetails: ProjectionDetail[];
 }
 
+export interface ProjectionComparisonMonth {
+  period: string;
+  actualIncome: number | null;
+  actualExpenses: number | null;
+  actualNet: number | null;
+  projectedIncome: number | null;
+  projectedExpenses: number | null;
+  projectedNet: number | null;
+}
+
+export interface WealthProjectionPoint {
+  period: string;
+  actualNetWorth: number | null;
+  actualLiquidity: number | null;
+  projectedNetWorth: number | null;
+  projectedLiquidity: number | null;
+}
+
+export interface FinancialTrajectoryPoint {
+  period: string;
+  actualIncome: number | null;
+  actualExpenses: number | null;
+  actualNet: number | null;
+  actualNetWorth: number | null;
+  actualLiquidity: number | null;
+  projectedIncome: number | null;
+  projectedExpenses: number | null;
+  projectedNet: number | null;
+  projectedNetWorth: number | null;
+  projectedLiquidity: number | null;
+}
+
 export interface ProjectionDetail {
   label: string;
   amount: number;
@@ -64,6 +96,112 @@ export function calculateMonthTotals(
     .reduce((sum, installment) => sum + toPen(installment.monthlyTotal, installment.currency), 0);
   const expenses = Math.max(0, roundMoney(directExpenses + installmentExpenses - refunds));
   return { income: roundMoney(income), expenses, net: roundMoney(income - expenses) };
+}
+
+function shiftPeriod(period: string, offset: number) {
+  const [year, month] = period.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function buildProjectionComparison(
+  startPeriod: string,
+  projections: ProjectionMonth[],
+  transactions: DashboardTransaction[],
+  installments: DashboardInstallment[],
+  rate: number | null
+): ProjectionComparisonMonth[] {
+  const actualPeriods = Array.from({ length: 7 }, (_, index) => shiftPeriod(startPeriod, index - 6));
+  const projectedByPeriod = new Map(projections.map((projection) => [projection.period, projection]));
+  const periods = Array.from(new Set([...actualPeriods, ...projectedByPeriod.keys()])).sort();
+
+  return periods.map((period) => {
+    const actual = actualPeriods.includes(period)
+      ? calculateMonthTotals(period, transactions, installments, rate)
+      : null;
+    const projected = projectedByPeriod.get(period);
+    return {
+      period,
+      actualIncome: actual?.income ?? null,
+      actualExpenses: actual?.expenses ?? null,
+      actualNet: actual?.net ?? null,
+      projectedIncome: projected?.income ?? null,
+      projectedExpenses: projected?.expenses ?? null,
+      projectedNet: projected?.net ?? null,
+    };
+  });
+}
+
+export function buildWealthProjection(
+  startPeriod: string,
+  projections: ProjectionMonth[],
+  currentNetWorth: number,
+  currentLiquidity: number
+): WealthProjectionPoint[] {
+  let netWorth = roundMoney(currentNetWorth);
+  let liquidity = roundMoney(currentLiquidity);
+  const points: WealthProjectionPoint[] = [{
+    period: startPeriod,
+    actualNetWorth: netWorth,
+    actualLiquidity: liquidity,
+    projectedNetWorth: null,
+    projectedLiquidity: null,
+  }];
+
+  projections.forEach((projection) => {
+    netWorth = roundMoney(netWorth + projection.net);
+    liquidity = roundMoney(liquidity + projection.net);
+    const point = {
+      period: projection.period,
+      actualNetWorth: null,
+      actualLiquidity: null,
+      projectedNetWorth: netWorth,
+      projectedLiquidity: liquidity,
+    };
+    const existingPoint = points.find((item) => item.period === projection.period);
+    if (existingPoint) {
+      existingPoint.projectedNetWorth = netWorth;
+      existingPoint.projectedLiquidity = liquidity;
+    } else {
+      points.push(point);
+    }
+  });
+
+  return points;
+}
+
+export function buildFinancialTrajectory(
+  startPeriod: string,
+  projections: ProjectionMonth[],
+  transactions: DashboardTransaction[],
+  installments: DashboardInstallment[],
+  rate: number | null,
+  currentNetWorth: number,
+  currentLiquidity: number
+): FinancialTrajectoryPoint[] {
+  const comparison = buildProjectionComparison(startPeriod, projections, transactions, installments, rate);
+  const wealth = buildWealthProjection(startPeriod, projections, currentNetWorth, currentLiquidity);
+  const comparisonByPeriod = new Map(comparison.map((point) => [point.period, point]));
+  const wealthByPeriod = new Map(wealth.map((point) => [point.period, point]));
+  const periods = Array.from(new Set([...comparisonByPeriod.keys(), ...wealthByPeriod.keys()])).sort();
+
+  return periods.map((period) => {
+    const comp = comparisonByPeriod.get(period);
+    const wealthPoint = wealthByPeriod.get(period);
+    return {
+      period,
+      actualIncome: comp?.actualIncome ?? null,
+      actualExpenses: comp?.actualExpenses ?? null,
+      actualNet: comp?.actualNet ?? null,
+      actualNetWorth: wealthPoint?.actualNetWorth ?? null,
+      actualLiquidity: wealthPoint?.actualLiquidity ?? null,
+      projectedIncome: comp?.projectedIncome ?? null,
+      projectedExpenses: comp?.projectedExpenses ?? null,
+      projectedNet: comp?.projectedNet ?? null,
+      projectedNetWorth: wealthPoint?.projectedNetWorth ?? null,
+      projectedLiquidity: wealthPoint?.projectedLiquidity ?? null,
+    };
+  });
 }
 
 export function buildProjection(

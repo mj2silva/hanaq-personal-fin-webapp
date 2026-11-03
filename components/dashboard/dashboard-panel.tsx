@@ -7,7 +7,8 @@ import { fieldClass, primaryButtonClass, selectClass } from '@/components/activi
 import { NewOperationDialog } from '@/components/activity/new-operation-dialog';
 import type { OperationReferenceData } from '@/components/activity/types';
 import { convertProjectedEvent, deleteProjectedEvent, saveProjectedEvent, updateCashSetting, type DashboardActionState } from '@/app/(app)/dashboard/actions';
-import type { ProjectionMonth } from '@/lib/dashboard/calculations';
+import { FinancialChart } from '@/components/dashboard/financial-chart';
+import type { FinancialTrajectoryPoint, ProjectionMonth } from '@/lib/dashboard/calculations';
 import type { Tables } from '@/types/database.types';
 
 type Category = Tables<'categories'>;
@@ -148,6 +149,7 @@ export function DashboardPanel({
   categories,
   events,
   projections,
+  financialTrajectory,
   operationData,
 }: {
   period: string;
@@ -159,6 +161,7 @@ export function DashboardPanel({
   categories: Category[];
   events: ProjectedEvent[];
   projections: ProjectionMonth[];
+  financialTrajectory: FinancialTrajectoryPoint[];
   operationData: OperationReferenceData;
 }) {
   const [view, setView] = useState<'overview' | 'projections'>('overview');
@@ -355,6 +358,7 @@ export function DashboardPanel({
 
     </div>}
     {view === 'projections' && <div className="space-y-6">
+      <FinancialChart data={financialTrajectory} currentPeriod={period} />
       <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div><h2 className="flex items-center gap-2 text-lg font-semibold"><TrendingUp className="h-5 w-5" /> Proyección de flujo</h2><p className="text-sm text-zinc-500">Selecciona el rango mensual que deseas simular y descargar.</p></div>

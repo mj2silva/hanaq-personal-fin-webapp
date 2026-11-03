@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { calculateBudgetUsage, type BudgetUsageInput, type FixedExpenseUsageInput, type InstallmentUsageInput, type SharedRepaymentInput } from '@/lib/month/calculations';
-import { buildProjection, calculateMonthTotals, type DashboardInstallment, type DashboardTransaction, type ProjectionEvent } from '@/lib/dashboard/calculations';
+import { buildProjection, buildFinancialTrajectory, calculateMonthTotals, type DashboardInstallment, type DashboardTransaction, type ProjectionEvent } from '@/lib/dashboard/calculations';
 import { convertAmount } from '@/lib/activity/calculations';
 import { DashboardPanel } from '@/components/dashboard/dashboard-panel';
 
@@ -137,6 +137,7 @@ async function DashboardContent() {
   const projectionBudget = budgetsWithUsage.reduce((sum, budget) => sum + budget.limit_amount_pen, 0);
   const loanPaymentPen = (loans ?? []).reduce((sum, loan) => sum + toPen(loan.monthly_installment_amount, loan.currency), 0);
   const projections = buildProjection(period, 12, projectionEvents, projectionBudget, installmentRows, loanPaymentPen, exchangeRate);
+  const financialTrajectory = buildFinancialTrajectory(period, projections, transactionRows, installmentRows, exchangeRate, netWorth, accountLiquidity);
   return <DashboardPanel
     period={period}
     totals={totals}
@@ -147,6 +148,7 @@ async function DashboardContent() {
     categories={categories ?? []}
     events={(events ?? []).map((event) => ({ ...event, categoryName: event.category_id ? categoryById.get(event.category_id)?.name ?? '' : '', categoryType: event.category_id ? categoryById.get(event.category_id)?.type ?? null : null }))}
     projections={projections}
+    financialTrajectory={financialTrajectory}
     operationData={{
       accounts: accounts ?? [],
       cards: cards ?? [],
