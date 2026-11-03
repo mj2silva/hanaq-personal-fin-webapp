@@ -223,7 +223,11 @@ export function ActivityPanel({
                           <p className="text-xs text-zinc-500">≈ {formatMoney(transaction.converted_amount, transaction.currency === 'USD' ? 'PEN' : 'USD')}</p>
                         )}
                       </div>
-                      <EditTransactionDialog transaction={transaction} />
+                      <EditTransactionDialog
+                        transaction={transaction}
+                        cards={data.cards}
+                        transactions={transactions}
+                      />
                       <DeleteTransactionButton transactionId={transaction.id} description={transaction.description} />
                     </div>
                   </li>

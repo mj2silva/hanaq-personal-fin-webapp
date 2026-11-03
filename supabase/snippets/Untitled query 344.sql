@@ -1,4 +1,4 @@
--- Fecha y monto solo para ingresos y gastos de cuenta sin dependencias.
+o-- Fecha y monto solo para ingresos y gastos de cuenta sin dependencias.
 CREATE OR REPLACE FUNCTION public.edit_transaction(p_transaction_id uuid, p_changes jsonb)
 RETURNS jsonb LANGUAGE plpgsql AS $function$
 DECLARE

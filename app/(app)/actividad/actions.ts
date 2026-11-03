@@ -320,8 +320,22 @@ export async function editTransaction(
     const changes: Record<string, string | number> = { description };
     const amount = text(formData, 'amount');
     const date = text(formData, 'date');
-    if (amount && amount !== text(formData, 'originalAmount')) changes.amount = amountSchema.parse(amount);
-    if (date && date !== text(formData, 'originalDate')) changes.transaction_date = toTransactionTimestamp(dateSchema.parse(date));
+    const creditCardId = text(formData, 'creditCardId');
+    const loanInterest = text(formData, 'loanInterest');
+
+    if (amount && amount !== text(formData, 'originalAmount')) {
+      changes.amount = amountSchema.parse(amount);
+    }
+    if (date && date !== text(formData, 'originalDate')) {
+      changes.transaction_date = toTransactionTimestamp(dateSchema.parse(date));
+    }
+    if (creditCardId && creditCardId !== text(formData, 'originalCreditCardId')) {
+      changes.credit_card_id = z.string().uuid().parse(creditCardId);
+    }
+    if (loanInterest && loanInterest !== text(formData, 'originalLoanInterest')) {
+      changes.loan_interest = z.coerce.number().min(0).parse(loanInterest);
+    }
+
     const { supabase } = await authenticatedClient();
     const { error } = await supabase.rpc('edit_transaction', { p_transaction_id: transactionId, p_changes: changes });
     if (error) throw rpcFailure(error, 'No se pudo editar el movimiento.');

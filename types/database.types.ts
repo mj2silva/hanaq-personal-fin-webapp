@@ -790,6 +790,9 @@ export interface Database {
           is_installment: boolean;
           is_shared_expense: boolean;
           loan_id: string | null;
+          loan_interest: number | null;
+          loan_principal: number | null;
+          loan_breakdown_estimated: boolean | null;
           parent_transaction_id: string | null;
           shared_split_id: string | null;
           transaction_date: string;
@@ -812,6 +815,9 @@ export interface Database {
           is_installment?: boolean;
           is_shared_expense?: boolean;
           loan_id?: string | null;
+          loan_interest?: number | null;
+          loan_principal?: number | null;
+          loan_breakdown_estimated?: boolean | null;
           parent_transaction_id?: string | null;
           shared_split_id?: string | null;
           transaction_date?: string;
@@ -834,6 +840,9 @@ export interface Database {
           is_installment?: boolean;
           is_shared_expense?: boolean;
           loan_id?: string | null;
+          loan_interest?: number | null;
+          loan_principal?: number | null;
+          loan_breakdown_estimated?: boolean | null;
           parent_transaction_id?: string | null;
           shared_split_id?: string | null;
           transaction_date?: string;

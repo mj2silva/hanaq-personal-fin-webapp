@@ -85,7 +85,7 @@ test('EditTransactionDialog renders modal popup and form fields for simple incom
   assert.equal(amountInput.props.defaultValue, 45.5);
 });
 
-test('EditTransactionDialog only allows description for other transaction types', () => {
+test('EditTransactionDialog allows amount and date for transfers, card operations, and last loan payment', () => {
   const transferTx = {
     id: 'tx-456',
     user_id: 'user-1',
@@ -114,6 +114,6 @@ test('EditTransactionDialog only allows description for other transaction types'
   const inputNames = inputs.map((i) => i.props?.name).filter(Boolean);
   assert.ok(inputNames.includes('transactionId'));
   assert.ok(inputNames.includes('description'));
-  assert.ok(!inputNames.includes('amount'), 'Should not allow amount edit for transfers');
-  assert.ok(!inputNames.includes('date'), 'Should not allow date edit for transfers');
+  assert.ok(inputNames.includes('amount'), 'Should allow amount edit for simple transfers');
+  assert.ok(inputNames.includes('date'), 'Should allow date edit for simple transfers');
 });

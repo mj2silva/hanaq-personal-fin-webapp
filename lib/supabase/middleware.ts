@@ -58,6 +58,7 @@ export async function updateSession(request: NextRequest) {
     '/actividad',
     '/cuentas',
     '/mi-mes',
+    '/historial',
     '/configuracion',
   ];
 
